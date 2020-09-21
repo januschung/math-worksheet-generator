@@ -29,6 +29,13 @@ class maths_worksheet_generator():
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
+            #avoid having negative numbers which is an advanced concept
+            #swap num_2 with num_1
+            if num_2 > num_1:
+                num_3 = num_1
+                num_1 = num_2
+                num_2 = num_3
+            
             answer = num_1 - num_2
         elif type == 'x':
             answer = num_1 * num_2
