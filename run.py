@@ -19,16 +19,22 @@ class maths_worksheet_generator():
     font_1 = 'Times'
     font_2 = 'Arial'
 
-    def generate_question(self, type):
+    def generate_question(self, type, size):
         # Generate each question and calculate the answer depending on the type in a list
         # To keep it simple, number is generated randomly within the range of 0 to 100
-        num_1 = random.randint(0, 100)
-        num_2 = random.randint(0, 100)
+        num_1 = random.randint(0, size)
+        num_2 = random.randint(0, size)
         if type == 'mix':
             type = random.choice(['+', '-', 'x'])
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
+            #avoid having negative numbers which is an advanced concept
+            #swap num_2 with num_1
+            if num_2 > num_1:
+                num_3 = num_2
+                num_2 = num_1
+                num_1 = num_3
             answer = num_1 - num_2
         elif type == 'x':
             answer = num_1 * num_2
@@ -36,11 +42,11 @@ class maths_worksheet_generator():
             raise RuntimeError('Question type {} not supported'.format(type))
         return [num_1, type, num_2, answer]
 
-    def get_list_of_questions(self, type):
+    def get_list_of_questions(self, type, size):
         # Generate all the questions for the worksheet in a list
         questions = []
         while len(questions) < self.total_question:
-            new_question = self.generate_question(type)
+            new_question = self.generate_question(type, size)
             if new_question not in questions:
                 questions.append(new_question)
         return questions
@@ -135,9 +141,9 @@ class maths_worksheet_generator():
                 self.pdf.ln()
 
 
-def main(type):
+def main(type, size):
     new_pdf = maths_worksheet_generator()
-    seed_question = new_pdf.get_list_of_questions(type)
+    seed_question = new_pdf.get_list_of_questions(type, size)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output("worksheet.pdf")
@@ -152,5 +158,17 @@ if __name__ == "__main__":
                              'x: Multipication; '
                              'mix: Mixed; '
                              '(default: +)')
+    parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
+                        help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
+                             '(default: 2 -> 0-99)')
     args = parser.parse_args()
-    main(args.type)
+
+    #how many places, 1:0-9, 2:0-99, 3:0-999
+    if args.digits == "1":
+        size = 9
+    elif args.digits == "3":
+        size = 999
+    else:
+        size = 99
+
+    main(args.type, size)
