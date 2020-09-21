@@ -3,10 +3,10 @@
 ![sample worksheet](sample.png)
 
 ## Background
-My best friend tests his 5 year old basic math questions from store-bought material which is good for one time use (his son memorizes the answers) …. but he wants to give him more practice. 
+My best friend tests his 5 year old basic math questions from store-bought material which is good for one time use (his son memorizes the answers) …. but he wants to give him more practice.
 
 Two solutions:
-1. keep buying more one time usage materials (less beer budget); or 
+1. keep buying more one time usage materials (less beer budget); or
 2. make question sets with the number pairs and calculate the answer for each question manually (less beer time)
 
 Not ideal.
@@ -29,7 +29,7 @@ There are four choices:
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
-python3 run.py --type [+|-|x|mix]
+python3 run.py --type [+|-|x|mix] --digits [1|2|3]
 ```
 For example, for addition only worksheet, use the following command:
 ```
