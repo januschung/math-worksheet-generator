@@ -25,7 +25,7 @@ class MathWorksheetGenerator():
         num_1 = random.randint(0, size)
         num_2 = random.randint(0, size)
         if type == 'mix':
-            type = random.choice(['+', '-', 'x'])
+            type = random.choice(['+', '-', 'x', '/'])
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
@@ -38,6 +38,10 @@ class MathWorksheetGenerator():
             answer = num_1 - num_2
         elif type == 'x':
             answer = num_1 * num_2
+        elif type == '/':
+            num_3 = num_1 * num_2
+            num_1, num_2 = num_3, num_1
+            answer = num_2
         else:
             raise RuntimeError('Question type {} not supported'.format(type))
         return [num_1, type, num_2, answer]
@@ -151,11 +155,12 @@ def main(type, size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
+    parser.add_argument('--type', default='+', choices=['+', '-', 'x', '/', 'mix'],
                         help='type of calculation: '
                              '+: Addition; '
                              '-: Substration; '
                              'x: Multipication; '
+                             '/: Division;'
                              'mix: Mixed; '
                              '(default: +)')
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
