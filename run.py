@@ -15,15 +15,15 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, size: int):
+    def __init__(self, type_: str, max_number: int):
         self.main_type = type_
-        self.size = size
+        self.max_number = max_number
         self.pdf = FPDF()
 
         self.small_font_size = 10
         self.middle_font_size = 15
         self.large_font_size = 30
-        self.size_ = 21
+        self.size = 21
         self.tiny_pad_size = 2
         self.pad_size = 10
         self.large_pad_size = 30
@@ -38,8 +38,8 @@ class MathWorksheetGenerator:
         To keep it simple, number is generated randomly within the range of 0 to 100
         :return:  list of value1, main_type, value2, and answer for the generated question
         """
-        num_1 = random.randint(0, self.size)
-        num_2 = random.randint(0, self.size)
+        num_1 = random.randint(0, self.max_number)
+        num_2 = random.randint(0, self.max_number)
         if self.main_type == 'mix':
             current_type = random.choice(['+', '-', 'x'])
         else:
@@ -148,7 +148,7 @@ class MathWorksheetGenerator:
             self.print_edge_vertical_separator()
         self.pdf.ln()
 
-    def make_answer_page(self, data: List[QuestionInfo]):
+    def make_answer_page(self, data):
         """Print answer sheet"""
         self.pdf.add_page(orientation='L')
         self.pdf.set_font(self.font_1, size=self.large_font_size)
@@ -177,8 +177,8 @@ def main(type_, size):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type_', default='+', choices=['+', '-', 'x', 'mix'],
-                        help='type_ of calculation: '
+    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
+                        help='type of calculation: '
                              '+: Addition; '
                              '-: Subtraction; '
                              'x: Multiplication; '
