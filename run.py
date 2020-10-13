@@ -54,7 +54,7 @@ class MathWorksheetGenerator:
         elif current_type == 'x':
             answer = num_1 * num_2
         else:
-            raise RuntimeError('Question main_type {} not supported'.format(current_type))
+            raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
 
     def get_list_of_questions(self) -> List[QuestionInfo]:
@@ -66,13 +66,10 @@ class MathWorksheetGenerator:
         duplicates = 0
         while len(questions) < self.total_question:
             new_question = self.generate_question()
-            if duplicates < 10:
-                if new_question not in questions:
-                    questions.append(new_question)
-                else:
-                    duplicates += 1
-            else:
+            if new_question not in questions or duplicates >= 10:
                 questions.append(new_question)
+            else:
+                duplicates += 1
         return questions
 
     def make_question_page(self, data: List[QuestionInfo]):
@@ -156,12 +153,12 @@ class MathWorksheetGenerator:
 
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt='{}:'.format(i + 1), border='TLB', align='R')
+            self.pdf.cell(self.pad_size, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')
             self.pdf.set_font(self.font_2, size=self.small_font_size)
             self.pdf.cell(self.pad_size, self.pad_size, txt=str(data[i][3]), border='TB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, align='C')
-            if (i+1) >= 10 and (i+1) % 10 == 0:
+            if i >= 9 and (i + 1) % 10 == 0:
                 self.pdf.ln()
 
 
