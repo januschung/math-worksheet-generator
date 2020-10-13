@@ -26,6 +26,8 @@ class MathWorksheetGenerator():
         num_2 = random.randint(0, size)
         if type == 'mix':
             type = random.choice(['+', '-', 'x'])
+        if type == 'addsub':
+            type = random.choice(['+', '-'])
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
@@ -151,14 +153,15 @@ def main(type, size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
+    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix', 'addsub'],
                         help='type of calculation: '
                              '+: Addition; '
-                             '-: Subtraction; '
-                             'x: Multiplication; '
+                             '-: Substration; '
+                             'x: Multipication; '
                              'mix: Mixed; '
+                             'addsub: AddandSubtract; '
                              '(default: +)')
-    parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
+    parser.add_argument('--digits', default='2', choices=['1', '2', '3', '4'],
                         help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
                              '(default: 2 -> 0-99)')
     args = parser.parse_args()
