@@ -3,7 +3,7 @@ import random
 from fpdf import FPDF
 
 
-class maths_worksheet_generator():
+class MathWorksheetGenerator():
     pdf = FPDF()
     # Basic settings
     small_font_size = 10
@@ -57,7 +57,7 @@ class maths_worksheet_generator():
         for page in range(0, total_page):
             self.pdf.add_page(orientation='L')
             self.print_question_row(data, (page) * (2 * self.num_x_cell))
-            self.print_horizontal_seperator()
+            self.print_horizontal_separator()
             self.print_question_row(data, (page) * (2 * self.num_x_cell) + self.num_x_cell)
 
     def print_top_row(self, question_num):
@@ -92,15 +92,15 @@ class maths_worksheet_generator():
         self.pdf.cell(self.size, self.size, border='TB', ln=0, align='R')
         self.pdf.cell(self.pad_size, self.size, border='BR', ln=0, align='C')
 
-    def print_edge_vertical_seperator(self):
+    def print_edge_vertical_separator(self):
         # Print space between question for the top or bottom row
         self.pdf.cell(self.pad_size, self.pad_size, border=0, ln=0)
 
-    def print_middle_vertical_seperator(self):
+    def print_middle_vertical_separator(self):
         # Print space betwen question for the second or third row
         self.pdf.cell(self.pad_size, self.size, border=0, ln=0)
 
-    def print_horizontal_seperator(self):
+    def print_horizontal_separator(self):
         # Print line breaker between two rows of questions
         self.pdf.cell(self.size, self.size, border=0, ln=0, align='C')
         self.pdf.ln()
@@ -109,19 +109,19 @@ class maths_worksheet_generator():
         # Print a single row of questions (total question in a row is set by num_x_cell)
         for x in range(0, self.num_x_cell):
             self.print_top_row(str(x + 1 + offset))
-            self.print_edge_vertical_seperator()
+            self.print_edge_vertical_separator()
         self.pdf.ln()
         for x in range(0, self.num_x_cell):
             self.print_second_row(data[x + offset][0])
-            self.print_middle_vertical_seperator()
+            self.print_middle_vertical_separator()
         self.pdf.ln()
         for x in range(0, self.num_x_cell):
             self.print_third_row(data[x + offset][2], data[x + offset][1])
-            self.print_middle_vertical_seperator()
+            self.print_middle_vertical_separator()
         self.pdf.ln()
         for _ in range(0, self.num_x_cell):
             self.print_bottom_row()
-            self.print_edge_vertical_seperator()
+            self.print_edge_vertical_separator()
         self.pdf.ln()
 
     def make_answer_page(self, data):
@@ -142,7 +142,7 @@ class maths_worksheet_generator():
 
 
 def main(type, size):
-    new_pdf = maths_worksheet_generator()
+    new_pdf = MathWorksheetGenerator()
     seed_question = new_pdf.get_list_of_questions(type, size)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
@@ -163,7 +163,7 @@ if __name__ == "__main__":
                              '(default: 2 -> 0-99)')
     args = parser.parse_args()
 
-    #how many places, 1:0-9, 2:0-99, 3:0-999
+    # how many places, 1:0-9, 2:0-99, 3:0-999
     if args.digits == "1":
         size = 9
     elif args.digits == "3":
