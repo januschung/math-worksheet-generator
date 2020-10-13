@@ -25,12 +25,12 @@ class MathWorksheetGenerator():
         num_1 = random.randint(0, size)
         num_2 = random.randint(0, size)
         if type == 'mix':
-            type = random.choice(['+', '-', 'x'])
+            type = random.choice(['+', '-', 'x', '/'])
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
-            #avoid having negative numbers which is an advanced concept
-            #swap num_2 with num_1
+            # avoid having negative numbers which is an advanced concept
+            # swap num_2 with num_1
             if num_2 > num_1:
                 num_3 = num_1
                 num_1 = num_2
@@ -38,6 +38,10 @@ class MathWorksheetGenerator():
             answer = num_1 - num_2
         elif type == 'x':
             answer = num_1 * num_2
+        elif type == '/':
+            num_2 = random.choice(
+                [x for x in range(1, num_1+1) if num_1 % x == 0])
+            answer = int(num_1 / num_2)
         else:
             raise RuntimeError('Question type {} not supported'.format(type))
         return [num_1, type, num_2, answer]
@@ -53,35 +57,42 @@ class MathWorksheetGenerator():
 
     def make_question_page(self, data):
         # Prepare a single page of question
-        total_page = int(self.total_question / (self.num_x_cell * self.num_y_cell))
+        total_page = int(self.total_question /
+                         (self.num_x_cell * self.num_y_cell))
         for page in range(0, total_page):
             self.pdf.add_page(orientation='L')
             self.print_question_row(data, (page) * (2 * self.num_x_cell))
             self.print_horizontal_separator()
-            self.print_question_row(data, (page) * (2 * self.num_x_cell) + self.num_x_cell)
+            self.print_question_row(
+                data, (page) * (2 * self.num_x_cell) + self.num_x_cell)
 
     def print_top_row(self, question_num):
         # Helper function to print first row of a question
         self.pdf.set_font(self.font_1, size=self.middle_font_size)
-        self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', ln=0, align='C')
+        self.pdf.cell(self.pad_size, self.pad_size,
+                      txt=question_num, border='LT', ln=0, align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', ln=0, align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', ln=0, align='C')
-        self.pdf.cell(self.pad_size, self.pad_size, border='TR', ln=0, align='C')
+        self.pdf.cell(self.pad_size, self.pad_size,
+                      border='TR', ln=0, align='C')
 
     def print_second_row(self, num):
         # Helper function to print second row of a question
         self.pdf.set_font(self.font_2, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='L', ln=0, align='C')
         self.pdf.cell(self.size, self.size, border=0, ln=0, align='C')
-        self.pdf.cell(self.size, self.size, txt=str(num), border=0, ln=0, align='R')
+        self.pdf.cell(self.size, self.size, txt=str(
+            num), border=0, ln=0, align='R')
         self.pdf.cell(self.pad_size, self.size, border='R', ln=0, align='C')
 
     def print_third_row(self, num, type):
         # Helper function to print third row of a question
         self.pdf.set_font(self.font_2, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='L', ln=0, align='C')
-        self.pdf.cell(self.size, self.size, txt=type, border=0, ln=0, align='L')
-        self.pdf.cell(self.size, self.size, txt=str(num), border=0, ln=0, align='R')
+        self.pdf.cell(self.size, self.size, txt=type,
+                      border=0, ln=0, align='L')
+        self.pdf.cell(self.size, self.size, txt=str(
+            num), border=0, ln=0, align='R')
         self.pdf.cell(self.pad_size, self.size, border='R', ln=0, align='C')
 
     def print_bottom_row(self):
@@ -128,15 +139,20 @@ class MathWorksheetGenerator():
         # Print answer sheet
         self.pdf.add_page(orientation='L')
         self.pdf.set_font(self.font_1, size=self.large_font_size)
-        self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', border=0, ln=1, align='C')
+        self.pdf.cell(self.large_pad_size, self.large_pad_size,
+                      txt='Answers', border=0, ln=1, align='C')
 
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt='{}:'.format(i+1), border='TLB', ln=0, align='R')
+            self.pdf.cell(self.pad_size, self.pad_size, txt='{}:'.format(
+                i+1), border='TLB', ln=0, align='R')
             self.pdf.set_font(self.font_2, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt=str(data[i][3]), border='TB', ln=0, align='R')
-            self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', ln=0, align='R')
-            self.pdf.cell(self.tiny_pad_size, self.pad_size, border=0, ln=0, align='C')
+            self.pdf.cell(self.pad_size, self.pad_size, txt=str(
+                data[i][3]), border='TB', ln=0, align='R')
+            self.pdf.cell(self.tiny_pad_size, self.pad_size,
+                          border='TRB', ln=0, align='R')
+            self.pdf.cell(self.tiny_pad_size, self.pad_size,
+                          border=0, ln=0, align='C')
             if (i+1) >= 10 and (i+1) % 10 == 0:
                 self.pdf.ln()
 
@@ -150,12 +166,14 @@ def main(type, size):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
+    parser = argparse.ArgumentParser(
+        description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
+    parser.add_argument('--type', default='+', choices=['+', '-', 'x', '/', 'mix'],
                         help='type of calculation: '
                              '+: Addition; '
                              '-: Substration; '
                              'x: Multipication; '
+                             '/: Division'
                              'mix: Mixed; '
                              '(default: +)')
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
@@ -170,5 +188,4 @@ if __name__ == "__main__":
         size = 999
     else:
         size = 99
-
     main(args.type, size)
