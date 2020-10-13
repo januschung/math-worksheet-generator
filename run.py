@@ -26,7 +26,7 @@ class MathWorksheetGenerator():
         num_1 = random.randint(0, size)
         num_2 = random.randint(0, size)
         if type == 'mix':
-            type = random.choice(['+', '-', 'x'])
+            type = random.choice(['+', '-', 'x', '/'])
         if type == '+':
             answer = num_1 + num_2
         elif type == '-':
@@ -39,6 +39,10 @@ class MathWorksheetGenerator():
             answer = num_1 - num_2
         elif type == 'x':
             answer = num_1 * num_2
+        elif type == '/':
+            num_2 = random.choice(
+                [x for x in range(1, num_1+1) if num_1 % x == 0])
+            answer = int(num_1 / num_2)
         else:
             raise RuntimeError('Question type {} not supported'.format(type))
         return [num_1, type, num_2, answer]
@@ -166,19 +170,20 @@ def main(type, size, questions):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
+    parser.add_argument('--type', default='+', choices=['+', '-', 'x', '/', 'mix'],
                         help='type of calculation: '
                              '+: Addition; '
                              '-: Substration; '
                              'x: Multipication; '
+                             '/: Division'
                              'mix: Mixed; '
                              '(default: +)')
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
                         help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
                              '(default: 2 -> 0-99)')
-    parser.add_argument('--questions', default='80', type=int, 
+    parser.add_argument('--questions', default='80', type=int,
                         help='number of questions'
-                              '(must be a multiple of 8)')      
+                        '(must be a multiple of 8)')
     args = parser.parse_args()
 
     # how many places, 1:0-9, 2:0-99, 3:0-999
@@ -188,5 +193,4 @@ if __name__ == "__main__":
         size = 999
     else:
         size = 99
-    args.questions = 10
     main(args.type, size, args.questions)
