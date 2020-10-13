@@ -188,5 +188,4 @@ if __name__ == "__main__":
         size = 999
     else:
         size = 99
-    args.questions = 10
     main(args.type, size, args.questions)
