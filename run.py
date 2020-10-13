@@ -141,8 +141,9 @@ class MathWorksheetGenerator():
                 self.pdf.ln()
 
 
-def main(type, size):
+def main(type, size,questions):
     new_pdf = MathWorksheetGenerator()
+    new_pdf.total_question = questions
     seed_question = new_pdf.get_list_of_questions(type, size)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
@@ -161,6 +162,7 @@ if __name__ == "__main__":
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
                         help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
                              '(default: 2 -> 0-99)')
+    parser.add_argument('--questions', default='80', type=int, help='number of questions')
     args = parser.parse_args()
 
     # how many places, 1:0-9, 2:0-99, 3:0-999
@@ -170,5 +172,5 @@ if __name__ == "__main__":
         size = 999
     else:
         size = 99
-
-    main(args.type, size)
+    args.questions = 10
+    main(args.type, size,args.questions)
