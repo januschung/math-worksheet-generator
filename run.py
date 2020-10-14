@@ -43,9 +43,9 @@ class MathWorksheetGenerator:
             raise RuntimeError('Question type {} not supported'.format(type))
         return [num_1, type, num_2, answer]
 
-    def get_list_of_questions(self, type, num_questions, size):
+    def get_list_of_questions(self, type, question_count, size):
         # Generate all the questions for the worksheet in a list
-        self.total_question = num_questions
+        self.total_question = question_count
         questions = []
         while len(questions) < self.total_question:
             new_question = self.generate_question(type, size)
@@ -154,15 +154,15 @@ class MathWorksheetGenerator:
                 self.pdf.ln()
 
 
-def main(type, questions, size):
+def main(type, question_count, size):
     new_pdf = MathWorksheetGenerator()
-    seed_question = new_pdf.get_list_of_questions(type, questions, size)
+    seed_question = new_pdf.get_list_of_questions(type, question_count, size)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output('worksheet.pdf')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet'
     )
@@ -184,10 +184,11 @@ if __name__ == '__main__':
         help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999' '(default: 2 -> 0-99)',
     )
     parser.add_argument(
-        '--questions',
+        '-q',
+        '--question_count',
         type=int,
         default='80',
-        help='number of questions' '(default: 80)',
+        help='total number of questions' '(default: 80)',
     )
     args = parser.parse_args()
 
@@ -199,4 +200,4 @@ if __name__ == '__main__':
     else:
         size = 99
 
-    main(args.type, args.questions, size)
+    main(args.type, args.question_count, size)
