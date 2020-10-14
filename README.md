@@ -27,10 +27,14 @@ There are four choices:
 1. [python3](https://www.python.org/downloads/)
 2. [fpdf](https://pypi.org/project/fpdf/)
 
+```
+$ pip install -r requirements.txt
+```
+
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
-python3 run.py --type [+|-|x|mix] --digits [1|2|3]
+python3 run.py --type [+|-|x|/|mix] --digits [1|2|3]
 ```
 For addition only worksheet, use the following command:
 ```

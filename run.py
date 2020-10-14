@@ -41,7 +41,7 @@ class MathWorksheetGenerator:
         num_1 = random.randint(0, self.max_number)
         num_2 = random.randint(0, self.max_number)
         if self.main_type == 'mix':
-            current_type = random.choice(['+', '-', 'x'])
+            current_type = random.choice(['+', '-', 'x', '/'])
         else:
             current_type = self.main_type
 
@@ -53,6 +53,9 @@ class MathWorksheetGenerator:
             answer = num_1 - num_2
         elif current_type == 'x':
             answer = num_1 * num_2
+        elif current_type == '/':
+            answer = num_1 * num_2
+            answer, num_1 = num_1, answer
         else:
             raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
@@ -182,6 +185,7 @@ if __name__ == "__main__":
                              '+: Addition; '
                              '-: Subtraction; '
                              'x: Multiplication; '
+                             '/: Division; '
                              'mix: Mixed; '
                              '(default: +)')
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
