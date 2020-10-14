@@ -74,12 +74,15 @@ class MathWorksheetGenerator:
 
     def make_question_page(self, data: List[QuestionInfo]):
         """Prepare a single page of questions"""
-        total_page = int(self.total_question / (self.num_x_cell * self.num_y_cell))
+        page_area = self.num_x_cell * self.num_y_cell
+        total_page = int(self.total_question / page_area)
         for page in range(total_page):
             self.pdf.add_page(orientation='L')
-            self.print_question_row(data, page * (2 * self.num_x_cell))
-            self.print_horizontal_separator()
-            self.print_question_row(data, page * (2 * self.num_x_cell) + self.num_x_cell)
+            self.print_question_row(data, page * page_area)
+            for row in range(1, self.num_y_cell):
+                page_row = row * self.num_x_cell
+                self.print_horizontal_separator()
+                self.print_question_row(data, page * page_area + page_row)
 
     def print_top_row(self, question_num: str):
         """Helper function to print first character row of a question row"""
