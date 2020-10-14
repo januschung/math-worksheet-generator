@@ -67,26 +67,16 @@ class MathWorksheetGenerator:
         for page in range(0, total_page):
             self.pdf.add_page(orientation='L')
             if num_problems_arr[page] < self.num_x_cell:
-                self.print_question_row(
-                    data, (page) * (2 * self.num_x_cell), num_problems_arr[page]
-                )
+                self.print_question_row(data, (page) * (2 * self.num_x_cell), num_problems_arr[page])
             else:
-                self.print_question_row(
-                    data, (page) * (2 * self.num_x_cell), self.num_x_cell
-                )
+                self.print_question_row(data, (page) * (2 * self.num_x_cell), self.num_x_cell)
                 self.print_horizontal_separator()
-                self.print_question_row(
-                    data,
-                    (page) * (2 * self.num_x_cell) + self.num_x_cell,
-                    num_problems_arr[page] - self.num_x_cell,
-                )
+                self.print_question_row(data, (page) * (2 * self.num_x_cell) + self.num_x_cell, num_problems_arr[page] - self.num_x_cell,)
 
     def print_top_row(self, question_num):
         # Helper function to print first row of a question
         self.pdf.set_font(self.font_1, size=self.middle_font_size)
-        self.pdf.cell(
-            self.pad_size, self.pad_size, txt=question_num, border='LT', ln=0, align='C'
-        )
+        self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', ln=0, align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', ln=0, align='C')
         self.pdf.cell(self.size, self.pad_size, border='T', ln=0, align='C')
         self.pdf.cell(self.pad_size, self.pad_size, border='TR', ln=0, align='C')
@@ -151,37 +141,14 @@ class MathWorksheetGenerator:
         # Print answer sheet
         self.pdf.add_page(orientation='L')
         self.pdf.set_font(self.font_1, size=self.large_font_size)
-        self.pdf.cell(
-            self.large_pad_size,
-            self.large_pad_size,
-            txt='Answers',
-            border=0,
-            ln=1,
-            align='C',
-        )
+        self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', border=0, ln=1, align='C')
 
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(
-                self.pad_size,
-                self.pad_size,
-                txt='{}:'.format(i + 1),
-                border='TLB',
-                ln=0,
-                align='R',
-            )
+            self.pdf.cell(self.pad_size, self.pad_size, txt='{}:'.format(i + 1), border='TLB', ln=0, align='R')
             self.pdf.set_font(self.font_2, size=self.small_font_size)
-            self.pdf.cell(
-                self.pad_size,
-                self.pad_size,
-                txt=str(data[i][3]),
-                border='TB',
-                ln=0,
-                align='R',
-            )
-            self.pdf.cell(
-                self.tiny_pad_size, self.pad_size, border='TRB', ln=0, align='R'
-            )
+            self.pdf.cell(self.pad_size, self.pad_size, txt=str(data[i][3]), border='TB', ln=0, align='R')
+            self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', ln=0, align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, border=0, ln=0, align='C')
             if (i + 1) >= 10 and (i + 1) % 10 == 0:
                 self.pdf.ln()
