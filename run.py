@@ -49,7 +49,7 @@ class MathWorksheetGenerator:
             answer = num_1 + num_2
         elif current_type == '-':
             #  avoid having a negative answer which is an advanced concept
-            num_1, num_2 = sorted((num_1, num_2))
+            num_1, num_2 = sorted((num_1, num_2), reverse=True)
             answer = num_1 - num_2
         elif current_type == 'x':
             answer = num_1 * num_2
