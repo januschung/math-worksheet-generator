@@ -26,6 +26,7 @@ class MathWorksheetGenerator:
         self.large_font_size = 30
         self.size = 21
         self.tiny_pad_size = 2
+        self.middle_pad_size = 6
         self.pad_size = 10
         self.large_pad_size = 30
         self.num_x_cell = 4
@@ -99,7 +100,10 @@ class MathWorksheetGenerator:
         total_pages = len(problems_per_page)
         for page in range(total_pages):
             self.pdf.add_page(orientation='L')
-            if problems_per_page[page] < self.num_x_cell:
+
+            if page == 0:
+                self.print_header_section()
+            elif problems_per_page[page] < self.num_x_cell:
                 self.print_question_row(data, page * page_area, problems_per_page[page])
             else:
                 problems_per_row = self.split_arr(problems_per_page[page], self.num_x_cell)
@@ -118,9 +122,9 @@ class MathWorksheetGenerator:
 
         return [y] * quotient
 
-    def print_top_row(self, question_num: str):
+    def print_top_row(self, question_num: str, font_size: int=15):
         """Helper function to print first character row of a question row"""
-        self.pdf.set_font(self.font_1, size=self.middle_font_size)
+        self.pdf.set_font(self.font_1, size=font_size)
         self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', align='C')
         self.pdf.cell(self.size, self.pad_size, border='T')
         self.pdf.cell(self.size, self.pad_size, border='T')
@@ -173,6 +177,14 @@ class MathWorksheetGenerator:
         self.pdf.cell(self.size, self.size, border='B')
         self.pdf.cell(self.pad_size, self.size, border='BR')
 
+    def print_header_section_bottom_row(self):
+        """Helper function to print bottom row of header section"""
+        self.pdf.set_font(self.font_2, size=self.tiny_pad_size)
+        self.pdf.cell(self.pad_size, self.pad_size, border='LB', align='C')
+        self.pdf.cell(self.size, self.pad_size, border='B', align='C')
+        self.pdf.cell(self.size, self.pad_size, border='B', align='C')
+        self.pdf.cell(self.pad_size, self.pad_size, border='BR', align='C')
+
     def print_edge_vertical_separator(self):
         """Print space between question for the top or bottom row"""
         self.pdf.cell(self.pad_size, self.pad_size)
@@ -185,6 +197,29 @@ class MathWorksheetGenerator:
         """Print line breaker between two rows of questions"""
         self.pdf.cell(self.size, self.size)
         self.pdf.ln()
+
+    def print_header_section(self):
+        self.print_top_row(question_num='Date', font_size=self.small_font_size)
+        self.print_edge_vertical_separator()
+
+        self.print_top_row(question_num='Name', font_size=self.small_font_size)
+        self.print_edge_vertical_separator()
+            
+        self.print_top_row(question_num='Score', font_size=self.small_font_size)
+        self.print_edge_vertical_separator()
+
+        self.print_top_row(question_num='')
+        self.print_edge_vertical_separator()
+        self.pdf.ln()
+    
+        for _ in range(self.num_x_cell):
+            self.print_header_section_bottom_row()
+            self.print_edge_vertical_separator()
+
+        self.pdf.ln()
+        
+        self.print_horizontal_separator()
+    
 
     def print_question_row(self, data, offset, num_problems):
         """Print a single row of questions (total question in a row is set by num_x_cell)"""
