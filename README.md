@@ -27,7 +27,7 @@ There are four choices:
 1. [python3](https://www.python.org/downloads/)
 2. [fpdf](https://pypi.org/project/fpdf/)
 
-When Python is installed run the following command to install requirements:
+Install require package with the following command:
 ```
 pip install -r requirements.txt
 ```
