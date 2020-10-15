@@ -57,7 +57,7 @@ class MathWorksheetGenerator:
             raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
 
-    def get_list_of_questions(self, question_count) -> List[QuestionInfo]:
+    def get_list_of_questions(self, question_count: int) -> List[QuestionInfo]:
         """Generate all the questions for the worksheet in a list. Initially trying for unique questions, but
         allowing duplicates if needed (e.g. asking for 80 addition problems with max size 3 requires duplication)
         :return: list of questions
@@ -76,27 +76,28 @@ class MathWorksheetGenerator:
     def make_question_page(self, data: List[QuestionInfo]):
         """Prepare a single page of questions"""
         page_area = self.num_x_cell * self.num_y_cell
-        quotient = int(self.total_question / page_area)
-        remainder = self.total_question % (self.num_x_cell * self.num_y_cell)
-        num_problems_arr = [self.num_x_cell * self.num_y_cell] * quotient
-        num_problems_arr.append(remainder)
-        if remainder != 0:
-            total_page = quotient + 1
-        else:
-            total_page = quotient
-        for page in range(total_page):
+        problems_per_page = self.split_arr(self.total_question, page_area)
+        total_pages = len(problems_per_page)
+        for page in range(total_pages):
             self.pdf.add_page(orientation='L')
-            if num_problems_arr[page] < self.num_x_cell:
-                self.print_question_row(data, page * page_area, num_problems_arr[page])
+            if problems_per_page[page] < self.num_x_cell:
+                self.print_question_row(data, page * page_area, problems_per_page[page])
             else:
-                self.print_question_row(data, page * page_area, self.num_x_cell)
-                self.print_horizontal_separator()
-                self.print_question_row(data, page * page_area + self.num_x_cell, num_problems_arr[page] - self.num_x_cell)
-#             self.print_question_row(data, page * page_area)
-#             for row in range(1, self.num_y_cell):
-#                 page_row = row * self.num_x_cell
-#                 self.print_horizontal_separator()
-#                 self.print_question_row(data, page * page_area + page_row)
+                problems_per_row = self.split_arr(problems_per_page[page], self.num_x_cell)
+                total_rows = len(problems_per_row)
+                self.print_question_row(data, page * page_area, problems_per_row[0])
+                for row in range(1, total_rows):
+                    page_row = row * (self.num_x_cell)
+                    self.print_horizontal_separator()
+                    self.print_question_row(data, page * page_area + page_row, problems_per_row[row])
+
+    def split_arr(self, x: int, y: int):
+        """Split x into x = y + y + ... + (x % y)"""
+        quotient, remainder = divmod(x, y)
+        if remainder != 0:
+            return [y] * quotient + [remainder]
+        else:
+            return [y] * quotient
 
     def print_top_row(self, question_num: str):
         """Helper function to print first character row of a question row"""
