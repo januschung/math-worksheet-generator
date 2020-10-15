@@ -165,13 +165,13 @@ class MathWorksheetGenerator:
                 self.pdf.ln()
 
 
-def main(type_, size):
+def main(type_, size, filename):
     """main function"""
     new_pdf = MathWorksheetGenerator(type_, size)
     seed_question = new_pdf.get_list_of_questions()
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
-    new_pdf.pdf.output("worksheet.pdf")
+    new_pdf.pdf.output(filename)
 
 
 if __name__ == "__main__":
@@ -187,6 +187,9 @@ if __name__ == "__main__":
     parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
                         help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
                              '(default: 2 -> 0-99)')
+    parser.add_argument('--output', metavar='filename.pdf', default='worksheet.pdf',
+                        help='Output file to the given filename '
+                             '(default: worksheet.pdf)')
     args = parser.parse_args()
 
     # how many places, 1:0-9, 2:0-99, 3:0-999
@@ -197,4 +200,4 @@ if __name__ == "__main__":
     else:
         size_ = 99
 
-    main(args.type, size_)
+    main(args.type, size_, args.output)
