@@ -45,7 +45,7 @@ python3 run.py --digits 3
 
 For custom filename generated file, use the following command:
 ```
-python3 run.py --output agnes-15oc
+python3 run.py --output agnes-15oc.pdf
 ```
 
 3. You can generate more questions by editing the parameter `total_question` under `run.py`
