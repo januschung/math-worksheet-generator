@@ -15,9 +15,10 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, max_number: int):
+    def __init__(self, type_: str, max_number: int, question_count: int):
         self.main_type = type_
         self.max_number = max_number
+        self.question_count = question_count
         self.pdf = FPDF()
 
         self.small_font_size = 10
@@ -29,7 +30,6 @@ class MathWorksheetGenerator:
         self.large_pad_size = 30
         self.num_x_cell = 4
         self.num_y_cell = 2
-        self.total_question = 80  # Must be a multiple of 40
         self.font_1 = 'Times'
         self.font_2 = 'Arial'
 
@@ -179,9 +179,9 @@ class MathWorksheetGenerator:
                 self.pdf.ln()
 
 
-def main(type_, question_count, size):
+def main(type_, size, question_count):
     """main function"""
-    new_pdf = MathWorksheetGenerator(type_, size)
+    new_pdf = MathWorksheetGenerator(type_, size, question_count)
     seed_question = new_pdf.get_list_of_questions(question_count)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
@@ -213,7 +213,7 @@ if __name__ == "__main__":
         '-q',
         '--question_count',
         type=int,
-        default='80',
+        default='80', # Must be a multiple of 40
         help='total number of questions' '(default: 80)',
     )
     args = parser.parse_args()
@@ -226,4 +226,4 @@ if __name__ == "__main__":
     else:
         size_ = 99
 
-    main(args.type, args.question_count, size_)
+    main(args.type, size_, args.question_count)
