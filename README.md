@@ -27,6 +27,11 @@ There are four choices:
 1. [python3](https://www.python.org/downloads/)
 2. [fpdf](https://pypi.org/project/fpdf/)
 
+When Python is installed run the following command to install requirements:
+```
+pip install -r requirements.txt
+```
+
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
