@@ -76,9 +76,9 @@ class MathWorksheetGenerator:
     def make_question_page(self, data: List[QuestionInfo]):
         """Prepare a single page of questions"""
         page_area = self.num_x_cell * self.num_y_cell
-        quotient = int(self.total_question / (self.num_x_cell * self.num_y_cell))
+        quotient = int(self.total_question / page_area)
         remainder = self.total_question % (self.num_x_cell * self.num_y_cell)
-        num_problems_arr = [self.num_x_cell * self.num_y_cell] * (quotient)
+        num_problems_arr = [self.num_x_cell * self.num_y_cell] * quotient
         num_problems_arr.append(remainder)
         if remainder != 0:
             total_page = quotient + 1
@@ -87,11 +87,11 @@ class MathWorksheetGenerator:
         for page in range(total_page):
             self.pdf.add_page(orientation='L')
             if num_problems_arr[page] < self.num_x_cell:
-                self.print_question_row(data, (page) * page_area, num_problems_arr[page])
+                self.print_question_row(data, page * page_area, num_problems_arr[page])
             else:
-                self.print_question_row(data, (page) * page_area, self.num_x_cell)
+                self.print_question_row(data, page * page_area, self.num_x_cell)
                 self.print_horizontal_separator()
-                self.print_question_row(data, (page) * page_area + self.num_x_cell, num_problems_arr[page] - self.num_x_cell,)
+                self.print_question_row(data, page * page_area + self.num_x_cell, num_problems_arr[page] - self.num_x_cell)
 #             self.print_question_row(data, page * page_area)
 #             for row in range(1, self.num_y_cell):
 #                 page_row = row * self.num_x_cell
