@@ -48,6 +48,13 @@ class MathWorksheetGenerator:
 	def multiplication(a,b):
 		return a * b
 	
+	@staticmethod
+	def division(a,b):
+		# get answer in form of remainder and qoutient
+		# avoid fraction and decimal answers
+		q, r = divmod(a,b)
+		return [q,r]
+	
 
     def generate_question(self) -> QuestionInfo:
         """Generates each question and calculate the answer depending on the type_ in a list
@@ -57,7 +64,7 @@ class MathWorksheetGenerator:
         num_1 = random.randint(0, self.max_number)
         num_2 = random.randint(0, self.max_number)
         if self.main_type == 'mix':
-            current_type = random.choice(['+', '-', 'x'])
+            current_type = random.choice(['+', '-', 'x', '/'])
         else:
             current_type = self.main_type
 
@@ -67,6 +74,8 @@ class MathWorksheetGenerator:
             answer = subtraction(num_1,num_2)
         elif current_type == 'x':
             answer = multiplication(num_1,num_2)
+	    elif current_type == '/':
+			answer = division(num_1,num_2)
         else:
             raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
