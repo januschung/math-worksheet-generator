@@ -17,11 +17,12 @@ That's the reason for me to look into an automate way to get the job done.
 ## Benefit of the Math Worksheet Generator
 With the Maths Worksheet Generator, you can create a PDF with unique questions, as needed, in a fraction of second.
 
-There are four choices:
+There are five choices:
 1. Addition
 2. Subtraction
 3. Multiplication
-4. Mixed
+4. Division
+5. Mixed
 
 ## Requirements
 [python3](https://www.python.org/downloads/)
@@ -34,7 +35,7 @@ pip install -r requirements.txt
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
-python3 run.py --type [+|-|x|mix] --digits [1|2|3]
+python3 run.py --type [+|-|x|/|mix] --digits [1|2|3]
 ```
 For addition only worksheet, use the following command:
 ```
@@ -60,7 +61,7 @@ I appreciate all suggestions or PRs which will help kids learn math better. Feel
 
 ## TODO
 1. Add date/name/score section to the front page
-2. Add support for Division
+2. Add support for Division ?
 3. Pass in the number of questions with a flag (currently the default is 80)
 
 ## Special Thanks
