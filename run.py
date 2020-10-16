@@ -32,6 +32,22 @@ class MathWorksheetGenerator:
         self.total_question = 80  # Must be a multiple of 40
         self.font_1 = 'Times'
         self.font_2 = 'Arial'
+		
+		
+	@staticmethod
+	def addition(a,b):
+		return a + b
+	
+	@staticmethod
+	def subtraction(a,b):
+		# avoid having negative answer which is an advance concept
+		a, b = sorted((a,b),reverse=True)
+		return a - b
+	
+	@staticmethod
+	def multiplication(a,b):
+		return a * b
+	
 
     def generate_question(self) -> QuestionInfo:
         """Generates each question and calculate the answer depending on the type_ in a list
@@ -46,13 +62,11 @@ class MathWorksheetGenerator:
             current_type = self.main_type
 
         if current_type == '+':
-            answer = num_1 + num_2
+            answer = addition(num_1,num_2)
         elif current_type == '-':
-            #  avoid having a negative answer which is an advanced concept
-            num_1, num_2 = sorted((num_1, num_2), reverse=True)
-            answer = num_1 - num_2
+            answer = subtraction(num_1,num_2)
         elif current_type == 'x':
-            answer = num_1 * num_2
+            answer = multiplication(num_1,num_2)
         else:
             raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
