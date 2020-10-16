@@ -7,10 +7,47 @@ __author__ = 'januschung'
 import argparse
 import random
 from typing import List, Tuple
+from logging import getLogger
 
 from fpdf import FPDF
 
+_logger = getLogger(__name__)
+
 QuestionInfo = Tuple[int, str, int, int]
+
+
+class Math:
+    """Math operations
+
+    Raises:
+        ZeroDivisionError: using division operator
+
+    Returns:
+        int: addition, substraction, multiplication
+        float: division
+    """
+    @staticmethod
+    def addition(a: int, b: int) -> int:
+        return a + b
+
+    @staticmethod
+    def substraction(a: int, b: int) -> int:
+        # avoid having a negative answer which is an advanced concept
+        a, b = sorted((a, b), reverse=True)
+        return a - b
+
+    @staticmethod
+    def multiplication(a: int, b: int) -> int:
+        return a * b
+
+    @staticmethod
+    def division(a: int, b: int) -> float:
+        # TODO: improve it to reduce fraction and return fraction
+        try:
+            return round(a / b, 2)  # TODO: add a period like 0.33(3)
+        except ZeroDivisionError:
+            _logger.error(f"Division by zero: {a} / {b}")
+            raise ZeroDivisionError
 
 
 class MathWorksheetGenerator:
@@ -38,23 +75,28 @@ class MathWorksheetGenerator:
         To keep it simple, number is generated randomly within the range of 0 to 100
         :return:  list of value1, main_type, value2, and answer for the generated question
         """
-        num_1 = random.randint(0, self.max_number)
-        num_2 = random.randint(0, self.max_number)
         if self.main_type == 'mix':
-            current_type = random.choice(['+', '-', 'x'])
+            current_type = random.choice(['+', '-', 'x', '/'])
         else:
             current_type = self.main_type
 
+        range_start = 1 if current_type == '/' else 0
+        range_end = self.max_number
+
+        num_1 = random.randint(range_start, range_end)
+        num_2 = random.randint(range_start, range_end)
+
         if current_type == '+':
-            answer = num_1 + num_2
+            answer = Math.addition(num_1, num_2)
         elif current_type == '-':
-            #  avoid having a negative answer which is an advanced concept
-            num_1, num_2 = sorted((num_1, num_2), reverse=True)
-            answer = num_1 - num_2
+            answer = Math.substraction(num_1, num_2)
         elif current_type == 'x':
-            answer = num_1 * num_2
+            answer = Math.multiplication(num_1, num_2)
+        elif current_type == '/':
+            answer = Math.division(num_1, num_2)
         else:
             raise RuntimeError(f'Question main_type {current_type} not supported')
+
         return num_1, current_type, num_2, answer
 
     def get_list_of_questions(self) -> List[QuestionInfo]:
