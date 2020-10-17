@@ -15,9 +15,10 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, max_number: int):
+    def __init__(self, type_: str, max_number: int, question_count: int):
         self.main_type = type_
         self.max_number = max_number
+        self.question_count = question_count
         self.pdf = FPDF()
 
         self.small_font_size = 10
@@ -29,7 +30,6 @@ class MathWorksheetGenerator:
         self.large_pad_size = 30
         self.num_x_cell = 4
         self.num_y_cell = 2
-        self.total_question = 80  # Must be a multiple of 40
         self.font_1 = 'Times'
         self.font_2 = 'Arial'
 
@@ -57,11 +57,12 @@ class MathWorksheetGenerator:
             raise RuntimeError(f'Question main_type {current_type} not supported')
         return num_1, current_type, num_2, answer
 
-    def get_list_of_questions(self) -> List[QuestionInfo]:
+    def get_list_of_questions(self, question_count: int) -> List[QuestionInfo]:
         """Generate all the questions for the worksheet in a list. Initially trying for unique questions, but
         allowing duplicates if needed (e.g. asking for 80 addition problems with max size 3 requires duplication)
         :return: list of questions
         """
+        self.total_question = question_count
         questions = []
         duplicates = 0
         while len(questions) < self.total_question:
@@ -75,14 +76,28 @@ class MathWorksheetGenerator:
     def make_question_page(self, data: List[QuestionInfo]):
         """Prepare a single page of questions"""
         page_area = self.num_x_cell * self.num_y_cell
-        total_page = int(self.total_question / page_area)
-        for page in range(total_page):
+        problems_per_page = self.split_arr(self.total_question, page_area)
+        total_pages = len(problems_per_page)
+        for page in range(total_pages):
             self.pdf.add_page(orientation='L')
-            self.print_question_row(data, page * page_area)
-            for row in range(1, self.num_y_cell):
-                page_row = row * self.num_x_cell
-                self.print_horizontal_separator()
-                self.print_question_row(data, page * page_area + page_row)
+            if problems_per_page[page] < self.num_x_cell:
+                self.print_question_row(data, page * page_area, problems_per_page[page])
+            else:
+                problems_per_row = self.split_arr(problems_per_page[page], self.num_x_cell)
+                total_rows = len(problems_per_row)
+                self.print_question_row(data, page * page_area, problems_per_row[0])
+                for row in range(1, total_rows):
+                    page_row = row * (self.num_x_cell)
+                    self.print_horizontal_separator()
+                    self.print_question_row(data, page * page_area + page_row, problems_per_row[row])
+
+    def split_arr(self, x: int, y: int):
+        """Split x into x = y + y + ... + (x % y)"""
+        quotient, remainder = divmod(x, y)
+        if remainder != 0:
+            return [y] * quotient + [remainder]
+        else:
+            return [y] * quotient
 
     def print_top_row(self, question_num: str):
         """Helper function to print first character row of a question row"""
@@ -129,21 +144,21 @@ class MathWorksheetGenerator:
         self.pdf.cell(self.size, self.size, align='C')
         self.pdf.ln()
 
-    def print_question_row(self, data: List[QuestionInfo], offset: int):
-        """Print a single row of questions (total question in a row is set by num_x_cell)"""
-        for x in range(self.num_x_cell):
+    def print_question_row(self, data, offset, num_problems):
+        # Print a single row of questions (total question in a row is set by num_x_cell)
+        for x in range(0, num_problems):
             self.print_top_row(str(x + 1 + offset))
             self.print_edge_vertical_separator()
         self.pdf.ln()
-        for x in range(self.num_x_cell):
+        for x in range(0, num_problems):
             self.print_second_row(data[x + offset][0])
             self.print_middle_vertical_separator()
         self.pdf.ln()
-        for x in range(self.num_x_cell):
+        for x in range(0, num_problems):
             self.print_third_row(data[x + offset][2], data[x + offset][1])
             self.print_middle_vertical_separator()
         self.pdf.ln()
-        for _ in range(self.num_x_cell):
+        for _ in range(0, num_problems):
             self.print_bottom_row()
             self.print_edge_vertical_separator()
         self.pdf.ln()
@@ -165,10 +180,10 @@ class MathWorksheetGenerator:
                 self.pdf.ln()
 
 
-def main(type_, size, filename):
+def main(type_, size, question_count, filename):
     """main function"""
-    new_pdf = MathWorksheetGenerator(type_, size)
-    seed_question = new_pdf.get_list_of_questions()
+    new_pdf = MathWorksheetGenerator(type_, size, question_count)
+    seed_question = new_pdf.get_list_of_questions(question_count)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output(filename)
@@ -176,17 +191,32 @@ def main(type_, size, filename):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet')
-    parser.add_argument('--type', default='+', choices=['+', '-', 'x', 'mix'],
-                        help='type of calculation: '
-                             '+: Addition; '
-                             '-: Subtraction; '
-                             'x: Multiplication; '
-                             'mix: Mixed; '
-                             '(default: +)')
-    parser.add_argument('--digits', default='2', choices=['1', '2', '3'],
-                        help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999'
-                             '(default: 2 -> 0-99)')
+        description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet'
+    )
+    parser.add_argument(
+        '--type',
+        default='+',
+        choices=['+', '-', 'x', 'mix'],
+        help='type of calculation: '
+        '+: Addition; '
+        '-: Substration; '
+        'x: Multipication; '
+        'mix: Mixed; '
+        '(default: +)',
+    )
+    parser.add_argument(
+        '--digits',
+        default='2',
+        choices=['1', '2', '3'],
+        help='range of numbers: 1: 0-9, 2: 0-99, 3: 0-999' '(default: 2 -> 0-99)',
+    )
+    parser.add_argument(
+        '-q',
+        '--question_count',
+        type=int,
+        default='80', # Must be a multiple of 40
+        help='total number of questions' '(default: 80)',
+    )
     parser.add_argument('--output', metavar='filename.pdf', default='worksheet.pdf',
                         help='Output file to the given filename '
                              '(default: worksheet.pdf)')
@@ -199,5 +229,5 @@ if __name__ == "__main__":
         size_ = 999
     else:
         size_ = 99
-
-    main(args.type, size_, args.output)
+        
+    main(args.type, size_, args.question_count, args.output)
