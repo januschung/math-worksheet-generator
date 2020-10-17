@@ -47,6 +47,11 @@ python3 run.py --digits 3
 
 2. Print out the generated file `worksheet.pdf`
 
+For custom filename generated file, use the following command:
+```
+python3 run.py --output custom-name.pdf
+```
+
 3. You can generate more questions by editing the parameter `total_question` under `run.py`
 
 ## Sample
