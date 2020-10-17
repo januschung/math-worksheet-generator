@@ -1,0 +1,7 @@
+.idea/
+.vscode/
+
+venv/
+__pycache__/
+
+worksheet.pdf
