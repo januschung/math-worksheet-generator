@@ -217,7 +217,7 @@ if __name__ == "__main__":
         default='80', # Must be a multiple of 40
         help='total number of questions' '(default: 80)',
     )
-    parser.add_argument('--output', metavar='filename.pdf', default='worksheet.pdf',
+    parser.add_argument('--output', metavar='custom-name.pdf', default='worksheet.pdf',
                         help='Output file to the given filename '
                              '(default: worksheet.pdf)')
     args = parser.parse_args()
