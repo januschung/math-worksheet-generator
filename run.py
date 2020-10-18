@@ -6,9 +6,8 @@ __author__ = 'januschung'
 
 import argparse
 import random
-from typing import List, Tuple
-
 from fpdf import FPDF
+from typing import List, Tuple
 
 QuestionInfo = Tuple[int, str, int, int]
 
@@ -62,10 +61,9 @@ class MathWorksheetGenerator:
         allowing duplicates if needed (e.g. asking for 80 addition problems with max size 3 requires duplication)
         :return: list of questions
         """
-        self.total_question = question_count
         questions = []
         duplicates = 0
-        while len(questions) < self.total_question:
+        while len(questions) < question_count:
             new_question = self.generate_question()
             if new_question not in questions or duplicates >= 10:
                 questions.append(new_question)
@@ -76,7 +74,7 @@ class MathWorksheetGenerator:
     def make_question_page(self, data: List[QuestionInfo]):
         """Prepare a single page of questions"""
         page_area = self.num_x_cell * self.num_y_cell
-        problems_per_page = self.split_arr(self.total_question, page_area)
+        problems_per_page = self.split_arr(self.question_count, page_area)
         total_pages = len(problems_per_page)
         for page in range(total_pages):
             self.pdf.add_page(orientation='L')
@@ -87,7 +85,7 @@ class MathWorksheetGenerator:
                 total_rows = len(problems_per_row)
                 self.print_question_row(data, page * page_area, problems_per_row[0])
                 for row in range(1, total_rows):
-                    page_row = row * (self.num_x_cell)
+                    page_row = row * self.num_x_cell
                     self.print_horizontal_separator()
                     self.print_question_row(data, page * page_area + page_row, problems_per_row[row])
 
@@ -145,7 +143,7 @@ class MathWorksheetGenerator:
         self.pdf.ln()
 
     def print_question_row(self, data, offset, num_problems):
-        # Print a single row of questions (total question in a row is set by num_x_cell)
+        """Print a single row of questions (total question in a row is set by num_x_cell)"""
         for x in range(0, num_problems):
             self.print_top_row(str(x + 1 + offset))
             self.print_edge_vertical_separator()
@@ -199,8 +197,8 @@ if __name__ == "__main__":
         choices=['+', '-', 'x', 'mix'],
         help='type of calculation: '
         '+: Addition; '
-        '-: Substration; '
-        'x: Multipication; '
+        '-: Subtraction; '
+        'x: Multiplication; '
         'mix: Mixed; '
         '(default: +)',
     )
@@ -214,7 +212,7 @@ if __name__ == "__main__":
         '-q',
         '--question_count',
         type=int,
-        default='80', # Must be a multiple of 40
+        default='80',  # Must be a multiple of 40
         help='total number of questions' '(default: 80)',
     )
     parser.add_argument('--output', metavar='filename.pdf', default='worksheet.pdf',
@@ -229,5 +227,5 @@ if __name__ == "__main__":
         size_ = 999
     else:
         size_ = 99
-        
+
     main(args.type, size_, args.question_count, args.output)
