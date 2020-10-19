@@ -88,7 +88,7 @@ Thank you for your coverage.
 
 [PyCoder's Weekly Issue #442](https://pycoders.com/issues/442)
 
-[PyCoder's Weekly's tweet](https://twitter.com/pycoders/status/1316379986417381376)
+[PyCoder's Weekly Twitter](https://twitter.com/pycoders/status/1316379986417381376)
 
 [Real Python Facebook](https://www.facebook.com/LearnRealPython/posts/1688239528018053?__tn__=-R)
 
