@@ -35,7 +35,7 @@ jobs:
     - name: Test with unittest
       run: |
         python -m unittest tests/test*.py
-      - name: Analysing the code with pylint
+    - name: Analysing the code with pylint
       run: |
         pylint `ls -R|grep .py$|xargs`
 
