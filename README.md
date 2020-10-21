@@ -17,7 +17,7 @@ That's the reason for me to look into an automate way to get the job done.
 ## Benefit of the Math Worksheet Generator
 With the Math Worksheet Generator, you can create a PDF with unique questions, as needed, in a fraction of second.
 
-There are four choices:
+There are five choices:
 1. Addition
 2. Subtraction
 3. Multiplication
