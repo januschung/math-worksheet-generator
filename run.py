@@ -122,51 +122,49 @@ class MathWorksheetGenerator:
         """Helper function to print first character row of a question row"""
         self.pdf.set_font(self.font_1, size=self.middle_font_size)
         self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', align='C')
-        self.pdf.cell(self.size, self.pad_size, border='T', align='C')
-        self.pdf.cell(self.size, self.pad_size, border='T', align='C')
-        self.pdf.cell(self.pad_size, self.pad_size, border='TR', align='C')
+        self.pdf.cell(self.size, self.pad_size, border='T')
+        self.pdf.cell(self.size, self.pad_size, border='T')
+        self.pdf.cell(self.pad_size, self.pad_size, border='TR')
 
     def print_second_row(self, num: int):
         """Helper function to print second character row of a question row"""
         self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L', align='C')
-        self.pdf.cell(self.size, self.size, align='C')
+        self.pdf.cell(self.pad_size, self.size, border='L')
+        self.pdf.cell(self.size, self.size)
         self.pdf.cell(self.size, self.size, txt=str(num), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='R')
 
     def print_second_row_division(self, num_1: int, num_2: int):
         """Helper function to print second character row of a question row for division"""
         self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='L')
         self.pdf.cell(self.size, self.size, txt=str(num_2), align='R')
         x_cor = self.pdf.get_x() - 3
         y_cor = self.pdf.get_y()
         self.pdf.image(name='division.png', x=x_cor, y=y_cor)
         self.pdf.cell(self.size, self.size, txt=str(num_1), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='R')
 
     def print_third_row(self, num: int, current_type: str):
         """Helper function to print third character row of a question row"""
-        # self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='L')
         self.pdf.cell(self.size, self.size, txt=current_type, align='L')
         self.pdf.cell(self.size, self.size, txt=str(num), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='R')
 
     def print_third_row_division(self):
         """Helper function to print third character row of a question row for division"""
-        # self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='L')
         self.pdf.cell(self.size, self.size, align='L')
         self.pdf.cell(self.size, self.size, align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='R')
 
     def print_bottom_row(self):
         """Helper function to print bottom row of question"""
-        self.pdf.cell(self.pad_size, self.size, border='LB', align='C')
-        self.pdf.cell(self.size, self.size, border='TB', align='C')
-        self.pdf.cell(self.size, self.size, border='TB', align='R')
-        self.pdf.cell(self.pad_size, self.size, border='BR', align='C')
+        self.pdf.cell(self.pad_size, self.size, border='LB')
+        self.pdf.cell(self.size, self.size, border='TB')
+        self.pdf.cell(self.size, self.size, border='TB')
+        self.pdf.cell(self.pad_size, self.size, border='BR')
 
     def print_bottom_row_division(self):
         """Helper function to print bottom row of question"""
@@ -185,7 +183,7 @@ class MathWorksheetGenerator:
 
     def print_horizontal_separator(self):
         """Print line breaker between two rows of questions"""
-        self.pdf.cell(self.size, self.size, align='C')
+        self.pdf.cell(self.size, self.size)
         self.pdf.ln()
 
     def print_question_row(self, data, offset, num_problems):
