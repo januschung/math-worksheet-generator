@@ -21,7 +21,8 @@ There are four choices:
 1. Addition
 2. Subtraction
 3. Multiplication
-4. Mixed
+4. Division
+5. Mixed
 
 ## Requirements
 [python3](https://www.python.org/downloads/)
@@ -34,7 +35,7 @@ pip install -r requirements.txt
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
-python3 run.py --type [+|-|x|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf]
+python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf]
 ```
 2. Print out the generated file `worksheet.pdf`
 
@@ -70,7 +71,6 @@ I appreciate all suggestions or PRs which will help kids learn math better. Feel
 
 ## TODO
 1. Add date/name/score section to the front page
-2. Add support for division in long division format
 
 ## Special Thanks
 My long time friend San for the inspiration of this project and lovely sons Tim and Hin. Thanks [thedanimal](https://github.com/thedanimal) for reviewing this README and adding new features.
@@ -93,3 +93,5 @@ Thank you for your coverage.
 [Real Python Facebook](https://www.facebook.com/LearnRealPython/posts/1688239528018053?__tn__=-R)
 
 [Github Trends Telegram](https://t.me/githubtrending/9007)
+
+[Python Trending Twitter](https://twitter.com/pythontrending/status/1316659466935373826)
