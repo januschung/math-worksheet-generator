@@ -6,14 +6,20 @@ __author__ = 'januschung'
 
 import argparse
 import random
-from fpdf import FPDF
 from typing import List, Tuple
+from fpdf import FPDF
 
 QuestionInfo = Tuple[int, str, int, int]
+
+# pylint settings:
+# pylint: disable=consider-using-enumerate
+# pylint: disable=no-else-return
+# pylint: disable=too-many-instance-attributes
 
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
+
     def __init__(self, type_: str, max_number: int, question_count: int):
         self.main_type = type_
         self.max_number = max_number
@@ -57,8 +63,10 @@ class MathWorksheetGenerator:
         return num_1, current_type, num_2, answer
 
     def get_list_of_questions(self, question_count: int) -> List[QuestionInfo]:
-        """Generate all the questions for the worksheet in a list. Initially trying for unique questions, but
-        allowing duplicates if needed (e.g. asking for 80 addition problems with max size 3 requires duplication)
+        """Generate all the questions for the worksheet in a list.
+        Initially trying for unique questions, but
+        allowing duplicates if needed
+        (e.g. asking for 80 addition problems with max size 3 requires duplication)
         :return: list of questions
         """
         questions = []
@@ -87,15 +95,18 @@ class MathWorksheetGenerator:
                 for row in range(1, total_rows):
                     page_row = row * self.num_x_cell
                     self.print_horizontal_separator()
-                    self.print_question_row(data, page * page_area + page_row, problems_per_row[row])
+                    self.print_question_row(data, page * page_area + page_row,
+                                            problems_per_row[row])
 
-    def split_arr(self, x: int, y: int):
-        """Split x into x = y + y + ... + (x % y)"""
-        quotient, remainder = divmod(x, y)
+    @classmethod
+    def split_arr(cls, number_x: int, number_y: int):
+        """Split x into number_x = number_y + number_y + ... + (number_x % number_y)"""
+
+        quotient, remainder = divmod(number_x, number_y)
         if remainder != 0:
-            return [y] * quotient + [remainder]
+            return [number_y] * quotient + [remainder]
         else:
-            return [y] * quotient
+            return [number_y] * quotient
 
     def print_top_row(self, question_num: str):
         """Helper function to print first character row of a question row"""
@@ -144,16 +155,16 @@ class MathWorksheetGenerator:
 
     def print_question_row(self, data, offset, num_problems):
         """Print a single row of questions (total question in a row is set by num_x_cell)"""
-        for x in range(0, num_problems):
-            self.print_top_row(str(x + 1 + offset))
+        for _ in range(0, num_problems):
+            self.print_top_row(str(_ + 1 + offset))
             self.print_edge_vertical_separator()
         self.pdf.ln()
-        for x in range(0, num_problems):
-            self.print_second_row(data[x + offset][0])
+        for _ in range(0, num_problems):
+            self.print_second_row(data[_ + offset][0])
             self.print_middle_vertical_separator()
         self.pdf.ln()
-        for x in range(0, num_problems):
-            self.print_third_row(data[x + offset][2], data[x + offset][1])
+        for _ in range(0, num_problems):
+            self.print_third_row(data[_ + offset][2], data[_ + offset][1])
             self.print_middle_vertical_separator()
         self.pdf.ln()
         for _ in range(0, num_problems):
@@ -222,10 +233,10 @@ if __name__ == "__main__":
 
     # how many places, 1:0-9, 2:0-99, 3:0-999
     if args.digits == "1":
-        size_ = 9
+        SIZE_ = 9
     elif args.digits == "3":
-        size_ = 999
+        SIZE_ = 999
     else:
-        size_ = 99
+        SIZE_ = 99
 
-    main(args.type, size_, args.question_count, args.output)
+    main(args.type, SIZE_, args.question_count, args.output)
