@@ -37,5 +37,5 @@ jobs:
         python -m unittest tests/test*.py
     - name: Analysing the code with pylint
       run: |
-        pylint run.py
+        find -name "*.py" -exec pylint {} \;
 
