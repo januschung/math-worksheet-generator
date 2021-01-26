@@ -242,7 +242,7 @@ def operation_type(string):
     """Operation type callable for parser."""
     # allowed operations
     ops = ('+', '-', 'x', '/')
-    # return all operations is mix
+    # return all operations if mix
     if string == 'mix':
         return ops
     # check all ops are legal
@@ -250,7 +250,7 @@ def operation_type(string):
         if op not in ops:
             msg = f'{op} is not an allowed operation'
             raise argparse.ArgumentTypeError(msg)
-    # check no duplicates
+    # check no duplicate ops
     if len(set(string)) != len(string):
         msg = f'cannot have duplicate types'
         raise argparse.ArgumentTypeError(msg)
