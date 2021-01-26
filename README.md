@@ -17,12 +17,13 @@ That's the reason for me to look into an automate way to get the job done.
 ## Benefit of the Math Worksheet Generator
 With the Math Worksheet Generator, you can create a PDF with unique questions, as needed, in a fraction of second.
 
-There are five choices:
+There are four operations:
 1. Addition
 2. Subtraction
 3. Multiplication
 4. Division
-5. Mixed
+
+Any subset of these operations can be specified.
 
 ## Requirements
 [python3](https://www.python.org/downloads/)
@@ -42,6 +43,10 @@ python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int]
 For addition only worksheet:
 ```
 python3 run.py --type +
+```
+For multiplication and division only worksheet:
+```
+python3 run.py --type /x
 ```
 For calculation up to 3 digits range:
 ```
