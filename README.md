@@ -25,7 +25,7 @@ There are five choices:
 5. Mixed
 
 ## Requirements
-[python3](https://www.python.org/downloads/)
+[python3.11](https://www.python.org/downloads/)
 
 Install required package with the following command:
 ```

@@ -7,6 +7,7 @@ __author__ = 'januschung'
 import argparse
 import random
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from functools import reduce
 from typing import List, Tuple
 
@@ -31,7 +32,7 @@ class MathWorksheetGenerator:
         self.num_x_cell = 4
         self.num_y_cell = 2
         self.font_1 = 'Times'
-        self.font_2 = 'Arial'
+        self.font_2 = 'Helvetica'
 
     # From https://stackoverflow.com/questions/6800193/what-is-the-most-efficient-way-of-finding-all-the-factors-of-a
     # -number-in-python
@@ -46,7 +47,8 @@ class MathWorksheetGenerator:
             num = random.randint(0, self.max_number)
         # pick a factor of num; answer will always be an integer
             if num:
-                factor = random.sample(self.factors(num), 1)[0]
+                # factor = random.sample(self.factors(num), 1)[0]
+                factor = random.sample(list(self.factors(num)), 1)[0]
         answer = int(num / factor)
         return [num, factor, answer]
 
@@ -218,8 +220,10 @@ class MathWorksheetGenerator:
         """Print answer sheet"""
         self.pdf.add_page(orientation='L')
         self.pdf.set_font(self.font_1, size=self.large_font_size)
-        self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', ln=1, align='C')
-
+        self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', new_x=XPos.LEFT, new_y=YPos.NEXT, align='C')
+        # new_x=XPos.RIGHT, new_y=YPos.TOP
+        # new_x=XPos.LEFT, new_y=YPos.TOP
+        # new_x=XPos.LEFT, new_y=YPos.LAST
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
             self.pdf.cell(self.pad_size, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')
