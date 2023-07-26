@@ -47,7 +47,6 @@ class MathWorksheetGenerator:
             num = random.randint(0, self.max_number)
         # pick a factor of num; answer will always be an integer
             if num:
-                # factor = random.sample(self.factors(num), 1)[0]
                 factor = random.sample(list(self.factors(num)), 1)[0]
         answer = int(num / factor)
         return [num, factor, answer]
@@ -221,9 +220,7 @@ class MathWorksheetGenerator:
         self.pdf.add_page(orientation='L')
         self.pdf.set_font(self.font_1, size=self.large_font_size)
         self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', new_x=XPos.LEFT, new_y=YPos.NEXT, align='C')
-        # new_x=XPos.RIGHT, new_y=YPos.TOP
-        # new_x=XPos.LEFT, new_y=YPos.TOP
-        # new_x=XPos.LEFT, new_y=YPos.LAST
+
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
             self.pdf.cell(self.pad_size, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')
