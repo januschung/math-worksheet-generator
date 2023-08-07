@@ -16,8 +16,8 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, max_number: int, question_count: int):
-        self.main_type = type_
+    def __init__(self, types: tuple, max_number: int, question_count: int):
+        self.all_types = types
         self.max_number = max_number
         self.question_count = question_count
         self.pdf = FPDF()
@@ -54,14 +54,12 @@ class MathWorksheetGenerator:
     def generate_question(self) -> QuestionInfo:
         """Generates each question and calculate the answer depending on the type_ in a list
         To keep it simple, number is generated randomly within the range of 0 to 100
-        :return:  list of value1, main_type, value2, and answer for the generated question
+        :return:  list of value1, current_type, value2, and answer for the generated question
         """
         num_1 = random.randint(0, self.max_number)
         num_2 = random.randint(0, self.max_number)
-        if self.main_type == 'mix':
-            current_type = random.choice(['+', '-', 'x', '/'])
-        else:
-            current_type = self.main_type
+
+        current_type = random.choice(self.all_types)
 
         if current_type == '+':
             answer = num_1 + num_2
@@ -241,6 +239,26 @@ def main(type_, size, question_count, filename):
     new_pdf.pdf.output(filename)
 
 
+def operation_type(string):
+    """Operation type callable for parser."""
+    # allowed operations
+    ops = ('+', '-', 'x', '/')
+    # return all operations if mix
+    if string == 'mix':
+        return ops
+    # check all ops are legal
+    for op in string:
+        if op not in ops:
+            msg = f'{op} is not an allowed operation'
+            raise argparse.ArgumentTypeError(msg)
+    # check no duplicate ops
+    if len(set(string)) != len(string):
+        msg = f'cannot have duplicate types'
+        raise argparse.ArgumentTypeError(msg)
+    # return tuple of ops
+    return tuple(string)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Generate Maths Addition/Subtraction/Multiplication Exercise Worksheet'
@@ -248,14 +266,15 @@ if __name__ == "__main__":
     parser.add_argument(
         '--type',
         default='+',
-        choices=['+', '-', 'x', '/', 'mix'],
-        help='type of calculation: '
+        type=operation_type,
+        help='type(s) of calculation: '
         '+: Addition; '
         '-: Subtraction; '
         'x: Multiplication; '
         '/: Division; '
         'mix: Mixed; '
-        '(default: +)',
+        '(default: +)'
+        'Types can be combined as a single parameter.',
     )
     parser.add_argument(
         '--digits',
