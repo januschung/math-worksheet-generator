@@ -221,7 +221,9 @@ class MathWorksheetGenerator:
             self.pdf.cell(self.pad_size * 2, self.pad_size, txt=str(data[i][3]), border='TB', align='R')  # Increased padding
             self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, align='C')
-            if i >= 9 and (i + 1) % 10 == 0:
+            
+            # Add a line break after every num_x_cell answers
+            if (i + 1) % self.num_x_cell == 0:
                 self.pdf.ln()
 
 
