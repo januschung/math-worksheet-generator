@@ -24,12 +24,12 @@ class MathWorksheetGenerator:
         self.small_font_size = 8  # Decreased from 10 to 8
         self.middle_font_size = 12  # Decreased from 15 to 12
         self.large_font_size = 20  # Decreased from 30 to 20
-        self.size = 21
-        self.tiny_pad_size = 2
-        self.pad_size = 5  # Decreased from 10 to 5
-        self.large_pad_size = 15  # Decreased from 30 to 15
-        self.num_x_cell = 5  
-        self.num_y_cell = 2
+        self.size = 16
+        self.tiny_pad_size = 5  # Just used for the answer page
+        self.pad_size = 4  # space between questions
+        self.large_pad_size = 25  # Just used for the answer page
+        self.num_x_cell = 5  # 5 columns of questions per page
+        self.num_y_cell = 3  # 3 rows of questions per page
         self.font_1 = 'Times'
         self.font_2 = 'Helvetica'
 
@@ -133,7 +133,7 @@ class MathWorksheetGenerator:
         self.pdf.set_font(self.font_2, size=self.large_font_size)
         self.pdf.cell(self.pad_size, self.size, border='L')
         self.pdf.cell(self.size, self.size, txt=str(num_2), align='R')
-        x_cor = self.pdf.get_x() - 3
+        x_cor = self.pdf.get_x() - 4  # Adjusted from -3 to -5 for better positioning
         y_cor = self.pdf.get_y()
         self.pdf.image(name='division.png', x=x_cor, y=y_cor)
         self.pdf.cell(self.size, self.size, txt=str(num_1), align='R')
@@ -216,9 +216,9 @@ class MathWorksheetGenerator:
 
         for i in range(len(data)):
             self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')
+            self.pdf.cell(self.pad_size * 2, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')  # Increased padding
             self.pdf.set_font(self.font_2, size=self.small_font_size)
-            self.pdf.cell(self.pad_size, self.pad_size, txt=str(data[i][3]), border='TB', align='R')
+            self.pdf.cell(self.pad_size * 2, self.pad_size, txt=str(data[i][3]), border='TB', align='R')  # Increased padding
             self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', align='R')
             self.pdf.cell(self.tiny_pad_size, self.pad_size, align='C')
             if i >= 9 and (i + 1) % 10 == 0:
