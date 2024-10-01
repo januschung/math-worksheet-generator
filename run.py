@@ -28,8 +28,8 @@ class MathWorksheetGenerator:
         self.tiny_pad_size = 2
         self.pad_size = 5  # Decreased from 10 to 5
         self.large_pad_size = 15  # Decreased from 30 to 15
-        self.num_x_cell = 5  # Increased from 4 to 6
-        self.num_y_cell = 2  # Increased from 2 to 4
+        self.num_x_cell = 5  
+        self.num_y_cell = 2
         self.font_1 = 'Times'
         self.font_2 = 'Helvetica'
 
