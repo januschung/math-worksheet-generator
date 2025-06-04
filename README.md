@@ -1,97 +1,248 @@
-# Math Worksheet Generator
+#!/usr/bin/env python3
 
-![sample worksheet](sample.png)
-![sample answer sheet](sample-answer.png)
+"""
+Math Worksheet Generator
 
-## Background
-My best friend tests his 5 year old basic math questions from store-bought material which is good for one time use (his son memorizes the answers) …. but he wants to give him more practice.
+A flexible PDF worksheet generator for math practice problems.
+Supports multiplication and addition with customizable number ranges.
 
-Two solutions:
-1. keep buying more one time usage materials (less beer budget); or
-2. make question sets with the number pairs and calculate the answer for each question manually (less beer time)
+Usage:
+    python run.py --multiplication --n=100 --term1=2..15 --term2=2..20
+    python run.py --addition --n=50 --term1=1..20 --term2=1..20 --output=homework.pdf
 
-Not ideal.
+Features:
+    - 50 problems per page in a 10x5 grid layout
+    - Automatic answer key generation on final page
+    - Extensible architecture for adding new operation types
 
-That's the reason for me to look into an automate way to get the job done.
+Dependencies:
+    pip install reportlab
 
-## Benefit of the Math Worksheet Generator
-With the Math Worksheet Generator, you can create a PDF with unique questions, as needed, in a fraction of second.
+"""
 
-There are five choices:
-1. Addition
-2. Subtraction
-3. Multiplication
-4. Division
-5. Mixed
+import argparse
+import random
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
 
-## Requirements
-[python3.11](https://www.python.org/downloads/)
+# Default values
+DEFAULT_N = 100
+DEFAULT_TERM1_MIN = 2
+DEFAULT_TERM1_MAX = 15
+DEFAULT_TERM2_MIN = 2
+DEFAULT_TERM2_MAX = 20
+DEFAULT_OUTPUT = "worksheet.pdf"
 
-Install required package with the following command:
-```
-pip install -r requirements.txt
-```
+class MathProblem:
+    """Base class for math problems"""
+    def __init__(self, term1, term2):
+        self.term1 = term1
+        self.term2 = term2
+    
+    def format_problem(self):
+        """Return formatted problem as list of lines"""
+        raise NotImplementedError
+    
+    def get_answer(self):
+        """Return the answer"""
+        raise NotImplementedError
 
-## How to Use
-1. Generate the worksheet in pdf format with the following command:
-```
-python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf]
-```
-2. Print out the generated file `worksheet.pdf`
+class MultiplicationProblem(MathProblem):
+    def format_problem(self):
+        # Format for right-aligned numbers with proper spacing
+        return [f"{self.term1}", f"x {self.term2}", "___"]
+    
+    def get_answer(self):
+        return self.term1 * self.term2
 
-For addition only worksheet:
-```
-python3 run.py --type +
-```
-For calculation up to 3 digits range:
-```
-python3 run.py --digits 3
-```
-For generating different number of question, eg. 100 (default is 80):
-```
-python3 run.py -q 100
-```
-or
-```
-python3 run.py --question_count 100
-```
-For custom output filename (default is worksheet.pdf):
-```
-python3 run.py --output custom-name.pdf
-```
+class AdditionProblem(MathProblem):
+    def format_problem(self):
+        # Format for right-aligned numbers with proper spacing
+        return [f"{self.term1}", f"+ {self.term2}", "___"]
+    
+    def get_answer(self):
+        return self.term1 + self.term2
 
-## Sample
-[sample worksheet](sample-worksheet.pdf)
+# Future operations can be added here:
+# class SubtractionProblem(MathProblem):
+#     def format_problem(self):
+#         return f"{self.term1:>3}\n- {self.term2:>2}\n___"
+#     
+#     def get_answer(self):
+#         return self.term1 - self.term2
 
-## Code Overview
-Everything is written in python in `run.py`. You can play with the font and grid size with the variables under the `# Basic settings` section.
+class WorksheetGenerator:
+    def __init__(self, problem_class, n, term1_range, term2_range, output_file):
+        self.problem_class = problem_class
+        self.n = n
+        self.term1_range = term1_range
+        self.term2_range = term2_range
+        self.output_file = output_file
+        self.problems = []
+        
+    def generate_problems(self):
+        """Generate n random problems"""
+        self.problems = []
+        for _ in range(self.n):
+            term1 = random.randint(self.term1_range[0], self.term1_range[1])
+            term2 = random.randint(self.term2_range[0], self.term2_range[1])
+            problem = self.problem_class(term1, term2)
+            self.problems.append(problem)
+    
+    def create_pdf(self):
+        """Create PDF with problems and answer key"""
+        c = canvas.Canvas(self.output_file, pagesize=letter)
+        width, height = letter
+        
+        # Problem pages
+        self._draw_problem_pages(c, width, height)
+        
+        # Answer key page
+        self._draw_answer_key(c, width, height)
+        
+        c.save()
+        print(f"Worksheet saved as {self.output_file}")
+    
+    def _draw_problem_pages(self, c, width, height):
+        """Draw the problem pages"""
+        problems_per_page = 50
+        cols = 10
+        rows = 5
+        
+        # Calculate spacing
+        margin = 0.5 * inch
+        usable_width = width - 2 * margin
+        usable_height = height - 2 * margin
+        
+        col_width = usable_width / cols
+        row_height = usable_height / rows
+        
+        problem_index = 0
+        
+        while problem_index < len(self.problems):
+            # Start new page
+            if problem_index > 0:
+                c.showPage()
+            
+            for row in range(rows):
+                for col in range(cols):
+                    if problem_index >= len(self.problems):
+                        break
+                    
+                    problem = self.problems[problem_index]
+                    
+                    # Calculate position
+                    x = margin + col * col_width + col_width * 0.1
+                    y = height - margin - row * row_height - row_height * 0.2
+                    
+                    # Draw problem
+                    self._draw_single_problem(c, problem, x, y)
+                    
+                    problem_index += 1
+                
+                if problem_index >= len(self.problems):
+                    break
+    
+    def _draw_single_problem(self, c, problem, x, y):
+        """Draw a single problem at the given position with proper alignment"""
+        lines = problem.format_problem()
+        line_height = 16  # Increased font size spacing
+        
+        # Set larger font for problems
+        c.setFont("Helvetica", 14)
+        
+        # Calculate the maximum width needed for right alignment
+        max_width = 0
+        for line in lines:
+            text_width = c.stringWidth(line, "Helvetica", 14)
+            max_width = max(max_width, text_width)
+        
+        # Draw each line right-aligned
+        for i, line in enumerate(lines):
+            text_width = c.stringWidth(line, "Helvetica", 14)
+            # Right-align by positioning based on max_width
+            line_x = x + max_width - text_width
+            line_y = y - i * line_height
+            c.drawString(line_x, line_y, line)
+    
+    def _draw_answer_key(self, c, width, height):
+        """Draw the answer key on the last page"""
+        c.showPage()
+        
+        # Title
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
+        
+        # Answers in compact grid
+        c.setFont("Helvetica", 10)
+        answers_per_row = 10
+        margin = 0.5 * inch
+        usable_width = width - 2 * margin
+        col_width = usable_width / answers_per_row
+        
+        start_y = height - 1 * inch
+        row_height = 15
+        
+        for i, problem in enumerate(self.problems):
+            row = i // answers_per_row
+            col = i % answers_per_row
+            
+            x = margin + col * col_width
+            y = start_y - row * row_height
+            
+            answer_text = f"{i+1}. {problem.get_answer()}"
+            c.drawString(x, y, answer_text)
 
-## Contributing
-I appreciate all suggestions or PRs which will help kids learn math better. Feel free to fork the project and create a pull request with your idea.
+def parse_range(range_str):
+    """Parse range string like '2..15' into tuple (2, 15)"""
+    try:
+        min_val, max_val = map(int, range_str.split('..'))
+        return (min_val, max_val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Range must be in format 'min..max', got '{range_str}'")
 
-## TODO
-1. Add date/name/score section to the front page
+def main():
+    parser = argparse.ArgumentParser(description='Generate math worksheets')
+    
+    # Operation type (mutually exclusive)
+    operation_group = parser.add_mutually_exclusive_group(required=True)
+    operation_group.add_argument('--multiplication', action='store_true',
+                                help='Generate multiplication problems')
+    operation_group.add_argument('--addition', action='store_true',
+                                help='Generate addition problems')
+    
+    # Problem parameters
+    parser.add_argument('--n', type=int, default=DEFAULT_N,
+                       help=f'Number of problems (default: {DEFAULT_N})')
+    parser.add_argument('--term1', type=parse_range, 
+                       default=f"{DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX}",
+                       help=f'Range for first term (default: {DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX})')
+    parser.add_argument('--term2', type=parse_range,
+                       default=f"{DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX}",
+                       help=f'Range for second term (default: {DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX})')
+    parser.add_argument('--output', default=DEFAULT_OUTPUT,
+                       help=f'Output filename (default: {DEFAULT_OUTPUT})')
+    
+    args = parser.parse_args()
+    
+    # Determine problem type
+    if args.multiplication:
+        problem_class = MultiplicationProblem
+    elif args.addition:
+        problem_class = AdditionProblem
+    
+    # Generate worksheet
+    generator = WorksheetGenerator(
+        problem_class=problem_class,
+        n=args.n,
+        term1_range=args.term1,
+        term2_range=args.term2,
+        output_file=args.output
+    )
+    
+    generator.generate_problems()
+    generator.create_pdf()
 
-## Special Thanks
-My long time friend San for the inspiration of this project and lovely sons Tim and Hin. Thanks [thedanimal](https://github.com/thedanimal) for reviewing this README and adding new features.
-
-Also, thank you for the love and support form the [Reddit Python community](https://www.reddit.com/r/Python/comments/ja5y2m/made_this_tool_with_python_and_my_son_now_hates_me/). You guys are amazing and are helping me to make this project better.
-
-## Successful Story
-Thanks [k1m0ch1](https://github.com/k1m0ch1) for sharing this heartwarming story:
->...I made this card for my kid, and then the teacher asks me if I can make some for the kids, well its generated anyway and very helpful, and the next day he asks me to make for a whole class, and next day he wants me to make for a whole school, and a weeks later other schools want me to help to make for a whole school.    
-    more than 1000 generated file, with a custom filename for every kid and sent to the email
-    I'm doing it for free, while you made this free, love it <3
-
-## Links
-Thank you for your coverage. 
-
-[PyCoder's Weekly Issue #442](https://pycoders.com/issues/442)
-
-[PyCoder's Weekly Twitter](https://twitter.com/pycoders/status/1316379986417381376)
-
-[Real Python Facebook](https://www.facebook.com/LearnRealPython/posts/1688239528018053?__tn__=-R)
-
-[Github Trends Telegram](https://t.me/githubtrending/9007)
-
-[Python Trending Twitter](https://twitter.com/pythontrending/status/1316659466935373826)
+if __name__ == "__main__":
+    main()

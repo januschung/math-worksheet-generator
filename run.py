@@ -1,289 +1,248 @@
-"""
-A module for creating .pdf math worksheets
-"""
+#!/usr/bin/env python3
 
-__author__ = 'januschung'
+"""
+Math Worksheet Generator
+
+A flexible PDF worksheet generator for math practice problems.
+Supports multiplication and addition with customizable number ranges.
+
+Usage:
+    python run.py --multiplication --n=100 --term1=2..15 --term2=2..20
+    python run.py --addition --n=50 --term1=1..20 --term2=1..20 --output=homework.pdf
+
+Features:
+    - 50 problems per page in a 10x5 grid layout
+    - Automatic answer key generation on final page
+    - Extensible architecture for adding new operation types
+
+Dependencies:
+    pip install reportlab
+
+"""
 
 import argparse
 import random
-from fpdf import FPDF
-from fpdf.enums import XPos, YPos
-from functools import reduce
-from typing import List, Tuple, Dict
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
 
-QuestionInfo = Tuple[int, str, int, int]
+# Default values
+DEFAULT_N = 100
+DEFAULT_TERM1_MIN = 2
+DEFAULT_TERM1_MAX = 15
+DEFAULT_TERM2_MIN = 2
+DEFAULT_TERM2_MAX = 20
+DEFAULT_OUTPUT = "worksheet.pdf"
 
+class MathProblem:
+    """Base class for math problems"""
+    def __init__(self, term1, term2):
+        self.term1 = term1
+        self.term2 = term2
+    
+    def format_problem(self):
+        """Return formatted problem as list of lines"""
+        raise NotImplementedError
+    
+    def get_answer(self):
+        """Return the answer"""
+        raise NotImplementedError
 
-class MathWorksheetGenerator:
-    """class for generating math worksheet of specified size and types"""
-    def __init__(self, operation_config: Dict[str, int], question_count: int):
-        self.operation_config = operation_config
-        self.question_count = question_count
-        self.pdf = FPDF()
+class MultiplicationProblem(MathProblem):
+    def format_problem(self):
+        # Format for right-aligned numbers with proper spacing
+        return [f"{self.term1}", f"x {self.term2}", "___"]
+    
+    def get_answer(self):
+        return self.term1 * self.term2
 
-        self.small_font_size = 8  # Decreased from 10 to 8
-        self.middle_font_size = 12  # Decreased from 15 to 12
-        self.large_font_size = 20  # Decreased from 30 to 20
-        self.size = 16
-        self.tiny_pad_size = 5  # Just used for the answer page
-        self.pad_size = 4  # space between questions
-        self.large_pad_size = 25  # Just used for the answer page
-        self.num_x_cell = 5  # 5 columns of questions per page
-        self.num_y_cell = 3  # 3 rows of questions per page
-        self.font_1 = 'Times'
-        self.font_2 = 'Helvetica'
+class AdditionProblem(MathProblem):
+    def format_problem(self):
+        # Format for right-aligned numbers with proper spacing
+        return [f"{self.term1}", f"+ {self.term2}", "___"]
+    
+    def get_answer(self):
+        return self.term1 + self.term2
 
-    def factors(self, n: int):
-        return set(reduce(list.__add__,
-                          ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
+# Future operations can be added here:
+# class SubtractionProblem(MathProblem):
+#     def format_problem(self):
+#         return f"{self.term1:>3}\n- {self.term2:>2}\n___"
+#     
+#     def get_answer(self):
+#         return self.term1 - self.term2
 
-    def division_helper(self, max_number) -> [int, int, int]:
-        attempts = 0
-        while attempts < 100:  # Limit attempts to prevent infinite loop
-            num = random.randint(2, max_number)  # Start from 2 to avoid division by 1
-            factors = list(self.factors(num))
-            if len(factors) > 2:  # Check if there are factors other than 1 and the number itself
-                factor = random.choice(factors[1:-1])  # Choose a factor that's not 1 or the number itself
-                answer = num // factor
-                return [num, factor, answer]
-            attempts += 1
+class WorksheetGenerator:
+    def __init__(self, problem_class, n, term1_range, term2_range, output_file):
+        self.problem_class = problem_class
+        self.n = n
+        self.term1_range = term1_range
+        self.term2_range = term2_range
+        self.output_file = output_file
+        self.problems = []
         
-        # If we couldn't find a suitable number after 100 attempts, use a simple case
-        return [4, 2, 2]  # A simple division problem as a fallback
-
-    def generate_question(self) -> QuestionInfo:
-        """Generates each question and calculate the answer depending on the type_ in a list"""
-        current_type = random.choice(list(self.operation_config.keys()))
-        max_number = self.operation_config[current_type]
-
-        if current_type in ['+', '-', 'x']:
-            num_1 = random.randint(0, max_number)
-            num_2 = random.randint(0, max_number)
-        elif current_type == '/':
-            num_1, num_2, answer = self.division_helper(max_number)
-            return num_1, current_type, num_2, answer
-
-        if current_type == '+':
-            answer = num_1 + num_2
-        elif current_type == '-':
-            num_1, num_2 = sorted((num_1, num_2), reverse=True)
-            answer = num_1 - num_2
-        elif current_type == 'x':
-            answer = num_1 * num_2
-        else:
-            raise RuntimeError(f'Question type {current_type} not supported')
-
-        return num_1, current_type, num_2, answer
-
-    def get_list_of_questions(self, question_count: int) -> List[QuestionInfo]:
-        """Generate all the questions for the worksheet in a list."""
-        questions = []
-        duplicates = 0
-        while len(questions) < question_count:
-            new_question = self.generate_question()
-            if new_question not in questions or duplicates >= 10:
-                questions.append(new_question)
-            else:
-                duplicates += 1
-        return questions
-
-    def make_question_page(self, data: List[QuestionInfo]):
-        """Prepare a single page of questions"""
-        page_area = self.num_x_cell * self.num_y_cell
-        problems_per_page = self.split_arr(self.question_count, page_area)
-        total_pages = len(problems_per_page)
-        for page in range(total_pages):
-            self.pdf.add_page(orientation='L')
-            if problems_per_page[page] < self.num_x_cell:
-                self.print_question_row(data, page * page_area, problems_per_page[page])
-            else:
-                problems_per_row = self.split_arr(problems_per_page[page], self.num_x_cell)
-                total_rows = len(problems_per_row)
-                self.print_question_row(data, page * page_area, problems_per_row[0])
-                for row in range(1, total_rows):
-                    page_row = row * self.num_x_cell
-                    self.print_horizontal_separator()
-                    self.print_question_row(data, page * page_area + page_row, problems_per_row[row])
-
-    def split_arr(self, x: int, y: int):
-        """Split x into x = y + y + ... + (x % y)"""
-        quotient, remainder = divmod(x, y)
-        if remainder != 0:
-            return [y] * quotient + [remainder]
-        return [y] * quotient
-
-    def print_top_row(self, question_num: str):
-        """Helper function to print first character row of a question row"""
-        self.pdf.set_font(self.font_1, size=self.middle_font_size)
-        self.pdf.cell(self.pad_size, self.pad_size, txt=question_num, border='LT', align='C')
-        self.pdf.cell(self.size, self.pad_size, border='T')
-        self.pdf.cell(self.size, self.pad_size, border='T')
-        self.pdf.cell(self.pad_size, self.pad_size, border='TR')
-
-    def print_second_row(self, num: int):
-        """Helper function to print second character row of a question row"""
-        self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L')
-        self.pdf.cell(self.size, self.size)
-        self.pdf.cell(self.size, self.size, txt=str(num), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R')
-
-    def print_second_row_division(self, num_1: int, num_2: int):
-        """Helper function to print second character row of a question row for division"""
-        self.pdf.set_font(self.font_2, size=self.large_font_size)
-        self.pdf.cell(self.pad_size, self.size, border='L')
-        self.pdf.cell(self.size, self.size, txt=str(num_2), align='R')
-        x_cor = self.pdf.get_x() - 4  # Adjusted from -3 to -5 for better positioning
-        y_cor = self.pdf.get_y()
-        self.pdf.image(name='division.png', x=x_cor, y=y_cor)
-        self.pdf.cell(self.size, self.size, txt=str(num_1), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R')
-
-    def print_third_row(self, num: int, current_type: str):
-        """Helper function to print third character row of a question row"""
-        self.pdf.cell(self.pad_size, self.size, border='L')
-        self.pdf.cell(self.size, self.size, txt=current_type, align='L')
-        self.pdf.cell(self.size, self.size, txt=str(num), align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R')
-
-    def print_third_row_division(self):
-        """Helper function to print third character row of a question row for division"""
-        self.pdf.cell(self.pad_size, self.size, border='L')
-        self.pdf.cell(self.size, self.size, align='L')
-        self.pdf.cell(self.size, self.size, align='R')
-        self.pdf.cell(self.pad_size, self.size, border='R')
-
-    def print_bottom_row(self):
-        """Helper function to print bottom row of question"""
-        self.pdf.cell(self.pad_size, self.size, border='LB')
-        self.pdf.cell(self.size, self.size, border='TB')
-        self.pdf.cell(self.size, self.size, border='TB')
-        self.pdf.cell(self.pad_size, self.size, border='BR')
-
-    def print_bottom_row_division(self):
-        """Helper function to print bottom row of question"""
-        self.pdf.cell(self.pad_size, self.size, border='LB')
-        self.pdf.cell(self.size, self.size, border='B')
-        self.pdf.cell(self.size, self.size, border='B')
-        self.pdf.cell(self.pad_size, self.size, border='BR')
-
-    def print_edge_vertical_separator(self):
-        """Print space between question for the top or bottom row"""
-        self.pdf.cell(self.pad_size, self.pad_size)
-
-    def print_middle_vertical_separator(self):
-        """Print space between question for the second or third row"""
-        self.pdf.cell(self.pad_size, self.size)
-
-    def print_horizontal_separator(self):
-        """Print line breaker between two rows of questions"""
-        self.pdf.cell(self.size, self.size)
-        self.pdf.ln()
-
-    def print_question_row(self, data, offset, num_problems):
-        """Print a single row of questions (total question in a row is set by num_x_cell)"""
-        for x in range(0, num_problems):
-            self.print_top_row(str(x + 1 + offset))
-            self.print_edge_vertical_separator()
-        self.pdf.ln()
-        for x in range(0, num_problems):
-            if data[x + offset][1] == '/':
-                self.print_second_row_division(data[x + offset][0], data[x + offset][2])
-            else:
-                self.print_second_row(data[x + offset][0])
-            self.print_middle_vertical_separator()
-        self.pdf.ln()
-        for x in range(0, num_problems):
-            if data[x + offset][1] == '/':
-                self.print_third_row_division()
-            else:
-                self.print_third_row(data[x + offset][2], data[x + offset][1])
-            self.print_middle_vertical_separator()
-        self.pdf.ln()
-        for x in range(0, num_problems):
-            if data[x + offset][1] == '/':
-                self.print_bottom_row_division()
-            else:
-                self.print_bottom_row()
-            self.print_edge_vertical_separator()
-        self.pdf.ln()
-
-    def make_answer_page(self, data):
-        """Print answer sheet"""
-        self.pdf.add_page(orientation='L')
-        self.pdf.set_font(self.font_1, size=self.large_font_size)
-        self.pdf.cell(self.large_pad_size, self.large_pad_size, txt='Answers', new_x=XPos.LEFT, new_y=YPos.NEXT, align='C')
-
-        for i in range(len(data)):
-            self.pdf.set_font(self.font_1, size=self.small_font_size)
-            self.pdf.cell(self.pad_size * 2, self.pad_size, txt=f'{i + 1}:', border='TLB', align='R')  # Increased padding
-            self.pdf.set_font(self.font_2, size=self.small_font_size)
-            self.pdf.cell(self.pad_size * 2, self.pad_size, txt=str(data[i][3]), border='TB', align='R')  # Increased padding
-            self.pdf.cell(self.tiny_pad_size, self.pad_size, border='TRB', align='R')
-            self.pdf.cell(self.tiny_pad_size, self.pad_size, align='C')
+    def generate_problems(self):
+        """Generate n random problems"""
+        self.problems = []
+        for _ in range(self.n):
+            term1 = random.randint(self.term1_range[0], self.term1_range[1])
+            term2 = random.randint(self.term2_range[0], self.term2_range[1])
+            problem = self.problem_class(term1, term2)
+            self.problems.append(problem)
+    
+    def create_pdf(self):
+        """Create PDF with problems and answer key"""
+        c = canvas.Canvas(self.output_file, pagesize=letter)
+        width, height = letter
+        
+        # Problem pages
+        self._draw_problem_pages(c, width, height)
+        
+        # Answer key page
+        self._draw_answer_key(c, width, height)
+        
+        c.save()
+        print(f"Worksheet saved as {self.output_file}")
+    
+    def _draw_problem_pages(self, c, width, height):
+        """Draw the problem pages"""
+        problems_per_page = 50
+        cols = 10
+        rows = 5
+        
+        # Calculate spacing
+        margin = 0.5 * inch
+        usable_width = width - 2 * margin
+        usable_height = height - 2 * margin
+        
+        col_width = usable_width / cols
+        row_height = usable_height / rows
+        
+        problem_index = 0
+        
+        while problem_index < len(self.problems):
+            # Start new page
+            if problem_index > 0:
+                c.showPage()
             
-            # Add a line break after every num_x_cell answers
-            if (i + 1) % self.num_x_cell == 0:
-                self.pdf.ln()
+            for row in range(rows):
+                for col in range(cols):
+                    if problem_index >= len(self.problems):
+                        break
+                    
+                    problem = self.problems[problem_index]
+                    
+                    # Calculate position
+                    x = margin + col * col_width + col_width * 0.1
+                    y = height - margin - row * row_height - row_height * 0.2
+                    
+                    # Draw problem
+                    self._draw_single_problem(c, problem, x, y)
+                    
+                    problem_index += 1
+                
+                if problem_index >= len(self.problems):
+                    break
+    
+    def _draw_single_problem(self, c, problem, x, y):
+        """Draw a single problem at the given position with proper alignment"""
+        lines = problem.format_problem()
+        line_height = 16  # Increased font size spacing
+        
+        # Set larger font for problems
+        c.setFont("Helvetica", 14)
+        
+        # Calculate the maximum width needed for right alignment
+        max_width = 0
+        for line in lines:
+            text_width = c.stringWidth(line, "Helvetica", 14)
+            max_width = max(max_width, text_width)
+        
+        # Draw each line right-aligned
+        for i, line in enumerate(lines):
+            text_width = c.stringWidth(line, "Helvetica", 14)
+            # Right-align by positioning based on max_width
+            line_x = x + max_width - text_width
+            line_y = y - i * line_height
+            c.drawString(line_x, line_y, line)
+    
+    def _draw_answer_key(self, c, width, height):
+        """Draw the answer key on the last page"""
+        c.showPage()
+        
+        # Title
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
+        
+        # Answers in compact grid
+        c.setFont("Helvetica", 10)
+        answers_per_row = 10
+        margin = 0.5 * inch
+        usable_width = width - 2 * margin
+        col_width = usable_width / answers_per_row
+        
+        start_y = height - 1 * inch
+        row_height = 15
+        
+        for i, problem in enumerate(self.problems):
+            row = i // answers_per_row
+            col = i % answers_per_row
+            
+            x = margin + col * col_width
+            y = start_y - row * row_height
+            
+            answer_text = f"{i+1}. {problem.get_answer()}"
+            c.drawString(x, y, answer_text)
 
+def parse_range(range_str):
+    """Parse range string like '2..15' into tuple (2, 15)"""
+    try:
+        min_val, max_val = map(int, range_str.split('..'))
+        return (min_val, max_val)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Range must be in format 'min..max', got '{range_str}'")
 
-def main(operation_config, question_count, filename):
-    """main function"""
-    new_pdf = MathWorksheetGenerator(operation_config, question_count)
-    seed_question = new_pdf.get_list_of_questions(question_count)
-    new_pdf.make_question_page(seed_question)
-    new_pdf.make_answer_page(seed_question)
-    new_pdf.pdf.output(filename)
-
+def main():
+    parser = argparse.ArgumentParser(description='Generate math worksheets')
+    
+    # Operation type (mutually exclusive)
+    operation_group = parser.add_mutually_exclusive_group(required=True)
+    operation_group.add_argument('--multiplication', action='store_true',
+                                help='Generate multiplication problems')
+    operation_group.add_argument('--addition', action='store_true',
+                                help='Generate addition problems')
+    
+    # Problem parameters
+    parser.add_argument('--n', type=int, default=DEFAULT_N,
+                       help=f'Number of problems (default: {DEFAULT_N})')
+    parser.add_argument('--term1', type=parse_range, 
+                       default=f"{DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX}",
+                       help=f'Range for first term (default: {DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX})')
+    parser.add_argument('--term2', type=parse_range,
+                       default=f"{DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX}",
+                       help=f'Range for second term (default: {DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX})')
+    parser.add_argument('--output', default=DEFAULT_OUTPUT,
+                       help=f'Output filename (default: {DEFAULT_OUTPUT})')
+    
+    args = parser.parse_args()
+    
+    # Determine problem type
+    if args.multiplication:
+        problem_class = MultiplicationProblem
+    elif args.addition:
+        problem_class = AdditionProblem
+    
+    # Generate worksheet
+    generator = WorksheetGenerator(
+        problem_class=problem_class,
+        n=args.n,
+        term1_range=args.term1,
+        term2_range=args.term2,
+        output_file=args.output
+    )
+    
+    generator.generate_problems()
+    generator.create_pdf()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Generate Mixed Math Exercise Worksheet with Different Difficulty Levels'
-    )
-    parser.add_argument(
-        '--addition_max',
-        type=int,
-        default=99,
-        help='Maximum number for addition problems (default: 99)'
-    )
-    parser.add_argument(
-        '--subtraction_max',
-        type=int,
-        default=99,
-        help='Maximum number for subtraction problems (default: 99)'
-    )
-    parser.add_argument(
-        '--multiplication_max',
-        type=int,
-        default=15,
-        help='Maximum number for multiplication problems (default: 15)'
-    )
-    parser.add_argument(
-        '--division_max',
-        type=int,
-        default=99,
-        help='Maximum number for division problems (default: 99)'
-    )
-    parser.add_argument(
-        '-q',
-        '--question_count',
-        type=int,
-        default=80,
-        help='Total number of questions (default: 80)'
-    )
-    parser.add_argument(
-        '--output',
-        metavar='filename.pdf',
-        default='worksheet.pdf',
-        help='Output file to the given filename (default: worksheet.pdf)'
-    )
-    args = parser.parse_args()
-
-    operation_config = {
-        '+': args.addition_max,
-        '-': args.subtraction_max,
-        'x': args.multiplication_max,
-        '/': args.division_max
-    }
-
-    main(operation_config, args.question_count, args.output)
+    main()
