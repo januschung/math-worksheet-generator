@@ -228,6 +228,12 @@ class WorksheetGenerator:
 
 # Add MixedWorksheetGenerator here
 class MixedWorksheetGenerator:
+    SECTION_LABELS = {
+        MultiplicationProblem: "Multiplication",
+        AdditionProblem: "Addition",
+        MissingFactorProblem: "Missing Factor",
+        FractionComparisonProblem: "Fraction Comparison",
+    }
     def __init__(self, problems_by_type, output_file):
         self.problems_by_type = problems_by_type  # List of (problem_cls, problems)
         self.output_file = output_file
@@ -241,6 +247,7 @@ class MixedWorksheetGenerator:
             [(self.problems_by_type[0][0], self.problems_by_type[0][1]), (self.problems_by_type[1][0], self.problems_by_type[1][1])],
             [(self.problems_by_type[2][0], self.problems_by_type[2][1]), (self.problems_by_type[3][0], self.problems_by_type[3][1])],
         ]
+        header_height = 22  # Space for header and line
         for page_idx, group in enumerate(page_groups):
             if page_idx:
                 c.showPage()
@@ -249,16 +256,26 @@ class MixedWorksheetGenerator:
             usable_h = h - 2 * margin
             cols, rows = 5, 5  # 25 per group
             col_w = usable_w / cols
-            row_h = (usable_h / 2) / rows  # half page per group
+            row_h = (usable_h / 2 - header_height) / rows  # half page per group, minus header
             for group_idx, (problem_cls, problems) in enumerate(group):
                 if not problems:
                     continue
+                # Calculate y offset for group (top or bottom half)
                 y_offset = 0 if group_idx == 0 else -(usable_h / 2)
+                # Header position
+                header_y = h - margin + y_offset - 2
+                c.setFont("Helvetica-Bold", 13)
+                label = self.SECTION_LABELS.get(problem_cls, str(problem_cls.__name__))
+                c.drawCentredString(w / 2, header_y, label)
+                # Draw thin line
+                c.setLineWidth(0.5)
+                c.line(margin, header_y - 5, w - margin, header_y - 5)
+                # Draw problems, shifted down by header_height
                 for i, p in enumerate(problems):
                     col = i % cols
                     row = i // cols
                     x = margin + col * col_w + 0.05 * col_w
-                    y = h - margin - row * row_h - 0.15 * row_h + y_offset
+                    y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
                     WorksheetGenerator._draw_single(c, p, x, y)
         self._draw_answer_key(c, w, h)
         c.save()
