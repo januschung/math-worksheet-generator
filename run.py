@@ -1,282 +1,283 @@
 #!/usr/bin/env python3
 """
-Math Worksheet Generator
+Math Worksheet Generator (stable v2)
+===================================
 
-A flexible PDF worksheet generator for math practice problems.
-Supports multiplication and addition with customizable number ranges.
+Generates printable PDF worksheets containing math practice problems and an
+answer key.  Now supports four problem types:
 
-Usage:
-    python run.py --multiplication --n=100 --term1=2..15 --term2=2..20
-    python run.py --addition --n=50 --term1=1..20 --term2=1..20 --output=homework.pdf
+1. Multiplication (vertical layout)
+2. Addition (vertical layout)
+3. Missing‑factor / relational‑thinking equations
+4. Fraction‑magnitude comparison (□ stands for <, =, >)
 
-Features:
-    - 50 problems per page in a 10x5 grid layout
-    - Automatic answer key generation on final page
-    - Right-aligned problem formatting for clean appearance
-    - Extensible architecture for adding new operation types
+Changes in **v2 (this version)**
+--------------------------------
+* **Fixes “silent failure”** caused by an incomplete CLI section and by passing
+  string defaults where tuples were expected.
+* **Defaults are now proper tuples** so they work even when you don’t supply
+  `--term1/--term2`.
+* Restores the full CLI block (the previous cut‑off after `op.add_argument` is
+  gone).
+* Keeps wider grid (5 × 10) for the single‑line problem types to prevent
+  overlap.
 
-Dependencies:
-    pip install reportlab
+Usage examples
+--------------
+```bash
+# 20 fraction comparisons, denominators 2‑12, to fractions.pdf
+python run.py --fractioncompare --n=20 --output=fractions.pdf
 
-Author: Math Worksheet Generator
+# Classic 100‑problem multiplication sheet
+python run.py --multiplication --n=100
+
+# 80‑problem mixed worksheet (run four times and merge PDFs, or use a script)
+python run.py --multiplication   --n=20 --output=1_mult.pdf
+python run.py --addition        --n=20 --output=2_add.pdf
+python run.py --missingfactor   --n=20 --output=3_miss.pdf
+python run.py --fractioncompare --n=20 --output=4_frac.pdf
+```
+
+Dependencies
+------------
+```bash
+pip install reportlab
+```
+
+Author: Math Worksheet Generator (stable v2)
 """
 
 import argparse
 import random
+from fractions import Fraction
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 
-# Default values (easy to edit)
+# -----------------------------------------------------------------------------
+# Defaults
+# -----------------------------------------------------------------------------
 DEFAULT_N = 100
-DEFAULT_TERM1_MIN = 2
-DEFAULT_TERM1_MAX = 12
-DEFAULT_TERM2_MIN = 2
-DEFAULT_TERM2_MAX = 20
+DEFAULT_TERM1_RANGE = (2, 12)
+DEFAULT_TERM2_RANGE = (2, 20)
 DEFAULT_OUTPUT = "worksheet.pdf"
 
+# -----------------------------------------------------------------------------
+# Problem type classes
+# -----------------------------------------------------------------------------
 class MathProblem:
-    """Base class for math problems"""
-    def __init__(self, term1, term2):
-        self.term1 = term1
-        self.term2 = term2
-    
+    """Abstract base for printable items."""
+
     def format_problem(self):
-        """Return formatted problem as list of lines"""
         raise NotImplementedError
-    
+
     def get_answer(self):
-        """Return the answer"""
         raise NotImplementedError
+
 
 class MultiplicationProblem(MathProblem):
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+
     def format_problem(self):
-        # Format for right-aligned numbers with proper spacing
-        return [f"{self.term1}", f"x {self.term2}", "___"]
-    
+        return [f"{self.a}", f"x {self.b}", "___"]
+
     def get_answer(self):
-        return self.term1 * self.term2
+        return str(self.a * self.b)
+
 
 class AdditionProblem(MathProblem):
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+
     def format_problem(self):
-        # Format for right-aligned numbers with proper spacing
-        return [f"{self.term1}", f"+ {self.term2}", "___"]
-    
+        return [f"{self.a}", f"+ {self.b}", "___"]
+
     def get_answer(self):
-        return self.term1 + self.term2
+        return str(self.a + self.b)
 
-# Future operations can be added here:
-# class SubtractionProblem(MathProblem):
-#     def format_problem(self):
-#         return f"{self.term1:>3}\n- {self.term2:>2}\n___"
-#     
-#     def get_answer(self):
-#         return self.term1 - self.term2
 
+class MissingFactorProblem(MathProblem):
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+        self.prod = a * b
+        self.blank_left = random.choice([True, False])
+
+    def format_problem(self):
+        if self.blank_left:
+            return [f"__ × {self.b} = {self.prod}"]
+        return [f"{self.a} × __ = {self.prod}"]
+
+    def get_answer(self):
+        return str(self.a if self.blank_left else self.b)
+
+
+class FractionComparisonProblem(MathProblem):
+    def __init__(self, d1, d2):
+        n1 = random.randint(1, d1 - 1)
+        n2 = random.randint(1, d2 - 1)
+        self.f1 = Fraction(n1, d1)
+        self.f2 = Fraction(n2, d2)
+
+    def format_problem(self):
+        return [f"{self.f1.numerator}/{self.f1.denominator}  □  "
+                f"{self.f2.numerator}/{self.f2.denominator}"]
+
+    def get_answer(self):
+        if self.f1 > self.f2:
+            return ">"
+        if self.f1 < self.f2:
+            return "<"
+        return "="
+
+
+# -----------------------------------------------------------------------------
+# Worksheet generator
+# -----------------------------------------------------------------------------
 class WorksheetGenerator:
-    def __init__(self, problem_class, n, term1_range, term2_range, output_file):
-        self.problem_class = problem_class
+    def __init__(self, problem_cls, n, term1_range, term2_range, output_file):
+        self.problem_cls = problem_cls
         self.n = n
         self.term1_range = term1_range
         self.term2_range = term2_range
         self.output_file = output_file
         self.problems = []
-        
+
+    # ---------------------------- problem creation ---------------------------
     def generate_problems(self):
-        """Generate n random problems, avoiding duplicates in recent problems"""
-        self.problems = []
-        recent_problems = []  # Track recent problems to avoid duplicates
-        max_recent = 10  # Number of recent problems to check for duplicates
-        max_attempts = 50  # Prevent infinite loops if range is very small
-        
+        self.problems.clear()
+        recent = []
+        max_recent = 10
         for _ in range(self.n):
-            attempts = 0
-            while attempts < max_attempts:
-                term1 = random.randint(self.term1_range[0], self.term1_range[1])
-                term2 = random.randint(self.term2_range[0], self.term2_range[1])
-                
-                # Check if this problem matches any recent problems
-                problem_tuple = (term1, term2)
-                if problem_tuple not in recent_problems:
-                    problem = self.problem_class(term1, term2)
-                    self.problems.append(problem)
-                    
-                    # Add to recent problems list
-                    recent_problems.append(problem_tuple)
-                    # Keep only the last max_recent problems
-                    if len(recent_problems) > max_recent:
-                        recent_problems.pop(0)
+            for _ in range(50):
+                a = random.randint(*self.term1_range)
+                b = random.randint(*self.term2_range)
+                if (a, b) not in recent:
+                    self.problems.append(self.problem_cls(a, b))
+                    recent.append((a, b))
+                    if len(recent) > max_recent:
+                        recent.pop(0)
                     break
-                
-                attempts += 1
             else:
-                # If we couldn't find a unique problem after max_attempts,
-                # just add a duplicate (prevents infinite loop with small ranges)
-                term1 = random.randint(self.term1_range[0], self.term1_range[1])
-                term2 = random.randint(self.term2_range[0], self.term2_range[1])
-                problem = self.problem_class(term1, term2)
-                self.problems.append(problem)
-    
+                a = random.randint(*self.term1_range)
+                b = random.randint(*self.term2_range)
+                self.problems.append(self.problem_cls(a, b))
+
+    # ------------------------------ PDF helpers ------------------------------
     def create_pdf(self):
-        """Create PDF with problems and answer key"""
         c = canvas.Canvas(self.output_file, pagesize=letter)
-        width, height = letter
-        
-        # Problem pages
-        self._draw_problem_pages(c, width, height)
-        
-        # Answer key page
-        self._draw_answer_key(c, width, height)
-        
+        w, h = letter
+        self._draw_problem_pages(c, w, h)
+        self._draw_answer_key(c, w, h)
         c.save()
         print(f"Worksheet saved as {self.output_file}")
-    
+
+    def _grid(self):
+        if self.problem_cls in (MissingFactorProblem, FractionComparisonProblem):
+            return 5, 10  # cols, rows – 50 per page
+        return 10, 5     # original dense grid
+
     def _draw_problem_pages(self, c, width, height):
-        """Draw the problem pages"""
-        problems_per_page = 50
-        cols = 10
-        rows = 5
-        
-        # Calculate spacing
+        cols, rows = self._grid()
         margin = 0.5 * inch
-        usable_width = width - 2 * margin
-        usable_height = height - 2 * margin
-        
-        col_width = usable_width / cols
-        row_height = usable_height / rows
-        
-        problem_index = 0
-        
-        while problem_index < len(self.problems):
-            # Start new page
-            if problem_index > 0:
+        usable_w = width - 2 * margin
+        usable_h = height - 2 * margin
+        col_w = usable_w / cols
+        row_h = usable_h / rows
+
+        idx = 0
+        while idx < len(self.problems):
+            if idx:
                 c.showPage()
-            
-            for row in range(rows):
+            for r in range(rows):
                 for col in range(cols):
-                    if problem_index >= len(self.problems):
+                    if idx >= len(self.problems):
                         break
-                    
-                    problem = self.problems[problem_index]
-                    
-                    # Calculate position
-                    x = margin + col * col_width + col_width * 0.1
-                    y = height - margin - row * row_height - row_height * 0.2
-                    
-                    # Draw problem
-                    self._draw_single_problem(c, problem, x, y)
-                    
-                    problem_index += 1
-                
-                if problem_index >= len(self.problems):
+                    p = self.problems[idx]
+                    x = margin + col * col_w + 0.05 * col_w
+                    y = height - margin - r * row_h - 0.15 * row_h
+                    self._draw_single(c, p, x, y)
+                    idx += 1
+                if idx >= len(self.problems):
                     break
-    
-    def _draw_single_problem(self, c, problem, x, y):
-        """Draw a single problem at the given position with proper alignment"""
+
+    @staticmethod
+    def _draw_single(c, problem, x, y):
         lines = problem.format_problem()
-        line_height = 16  # Increased font size spacing
-        
-        # Set larger font for problems
+        lh = 16
         c.setFont("Helvetica", 14)
-        
-        # Calculate the maximum width needed for right alignment
-        max_width = 0
-        for line in lines:
-            text_width = c.stringWidth(line, "Helvetica", 14)
-            max_width = max(max_width, text_width)
-        
-        # Draw each line right-aligned
-        for i, line in enumerate(lines):
-            text_width = c.stringWidth(line, "Helvetica", 14)
-            # Right-align by positioning based on max_width
-            line_x = x + max_width - text_width
-            line_y = y - i * line_height
-            c.drawString(line_x, line_y, line)
-    
+        max_w = max(c.stringWidth(L, "Helvetica", 14) for L in lines)
+        for i, L in enumerate(lines):
+            line_x = x + max_w - c.stringWidth(L, "Helvetica", 14)
+            c.drawString(line_x, y - i * lh, L)
+
     def _draw_answer_key(self, c, width, height):
-        """Draw the answer key on the last page"""
         c.showPage()
-        
-        # Title
         c.setFont("Helvetica-Bold", 16)
         c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
-        
-        # Answers in compact grid
         c.setFont("Helvetica", 10)
-        answers_per_row = 10
+        per_row = 10
         margin = 0.5 * inch
-        usable_width = width - 2 * margin
-        col_width = usable_width / answers_per_row
-        
+        col_w = (width - 2 * margin) / per_row
         start_y = height - 1 * inch
-        row_height = 15
-        
-        for i, problem in enumerate(self.problems):
-            row = i // answers_per_row
-            col = i % answers_per_row
-            
-            x = margin + col * col_width
-            y = start_y - row * row_height
-            
-            answer_text = f"{i+1}. {problem.get_answer()}"
-            c.drawString(x, y, answer_text)
+        row_h = 15
+        for i, p in enumerate(self.problems):
+            x = margin + (i % per_row) * col_w
+            y = start_y - (i // per_row) * row_h
+            c.drawString(x, y, f"{i+1}. {p.get_answer()}")
 
-def parse_range(range_str):
-    """Parse range string like '2..15' into tuple (2, 15)"""
+
+# -----------------------------------------------------------------------------
+# CLI helpers
+# -----------------------------------------------------------------------------
+
+def parse_range(txt):
     try:
-        min_val, max_val = map(int, range_str.split('..'))
-        return (min_val, max_val)
+        a, b = map(int, txt.split(".."))
+        if a > b:
+            raise ValueError
+        return a, b
     except ValueError:
-        raise argparse.ArgumentTypeError(f"Range must be in format 'min..max', got '{range_str}'")
+        raise argparse.ArgumentTypeError("Range must be 'min..max' with min ≤ max")
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Generate math worksheets with problems and answer keys',
-        epilog='''Examples:
-  %(prog)s --multiplication
-  %(prog)s --addition --n=50 --term1=1..20 --term2=5..15
-  %(prog)s --multiplication --term1=3..12 --term2=2..10 --output=homework.pdf''',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Generate printable math worksheets (PDF).",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n""",
     )
-    
-    # Operation type (mutually exclusive)
-    operation_group = parser.add_mutually_exclusive_group(required=True)
-    operation_group.add_argument('--multiplication', action='store_true',
-                                help='Generate multiplication problems')
-    operation_group.add_argument('--addition', action='store_true',
-                                help='Generate addition problems')
-    
-    # Problem parameters
-    parser.add_argument('--n', type=int, default=DEFAULT_N, metavar='NUM',
-                       help=f'Number of problems to generate (default: {DEFAULT_N})')
-    parser.add_argument('--term1', type=parse_range, metavar='MIN..MAX',
-                       default=f"{DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX}",
-                       help=f'Range for first number, e.g., 2..15 (default: {DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX})')
-    parser.add_argument('--term2', type=parse_range, metavar='MIN..MAX',
-                       default=f"{DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX}",
-                       help=f'Range for second number, e.g., 3..20 (default: {DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX})')
-    parser.add_argument('--output', default=DEFAULT_OUTPUT, metavar='FILE',
-                       help=f'Output PDF filename (default: {DEFAULT_OUTPUT})')
-    
+
+    g = parser.add_mutually_exclusive_group(required=True)
+    g.add_argument("--multiplication", action="store_true")
+    g.add_argument("--addition", action="store_true")
+    g.add_argument("--missingfactor", action="store_true")
+    g.add_argument("--fractioncompare", action="store_true")
+
+    parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
+    parser.add_argument("--term1", type=parse_range, help="Range for first number e.g. 2..12")
+    parser.add_argument("--term2", type=parse_range, help="Range for second number e.g. 2..20")
+    parser.add_argument("--output", default=DEFAULT_OUTPUT, help="PDF filename")
+
     args = parser.parse_args()
-    
-    # Determine problem type
+
+    # fill in defaults if omitted
+    term1_range = args.term1 or DEFAULT_TERM1_RANGE
+    term2_range = args.term2 or DEFAULT_TERM2_RANGE
+
     if args.multiplication:
-        problem_class = MultiplicationProblem
+        cls = MultiplicationProblem
     elif args.addition:
-        problem_class = AdditionProblem
-    
-    # Generate worksheet
-    generator = WorksheetGenerator(
-        problem_class=problem_class,
-        n=args.n,
-        term1_range=args.term1,
-        term2_range=args.term2,
-        output_file=args.output
-    )
-    
-    generator.generate_problems()
-    generator.create_pdf()
+        cls = AdditionProblem
+    elif args.missingfactor:
+        cls = MissingFactorProblem
+    else:
+        cls = FractionComparisonProblem
+
+    gen = WorksheetGenerator(cls, args.n, term1_range, term2_range, args.output)
+    gen.generate_problems()
+    gen.create_pdf()
+
 
 if __name__ == "__main__":
     main()
