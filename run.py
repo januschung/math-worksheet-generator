@@ -13,13 +13,13 @@ answer key.  Now supports four problem types:
 
 Changes in **v2 (this version)**
 --------------------------------
-* **Fixes “silent failure”** caused by an incomplete CLI section and by passing
+* **Fixes "silent failure"** caused by an incomplete CLI section and by passing
   string defaults where tuples were expected.
-* **Defaults are now proper tuples** so they work even when you don’t supply
+* **Defaults are now proper tuples** so they work even when you don't supply
   `--term1/--term2`.
-* Restores the full CLI block (the previous cut‑off after `op.add_argument` is
+* Restores the full CLI block (the previous cut-off after `op.add_argument` is
   gone).
-* Keeps wider grid (5 × 10) for the single‑line problem types to prevent
+* Keeps wider grid (5 × 10) for the single-line problem types to prevent
   overlap.
 
 Usage examples
@@ -28,10 +28,10 @@ Usage examples
 # 20 fraction comparisons, denominators 2‑12, to fractions.pdf
 python run.py --fractioncompare --n=20 --output=fractions.pdf
 
-# Classic 100‑problem multiplication sheet
+# Classic 100-problem multiplication sheet
 python run.py --multiplication --n=100
 
-# 80‑problem mixed worksheet (run four times and merge PDFs, or use a script)
+# 80-problem mixed worksheet (run four times and merge PDFs, or use a script)
 python run.py --multiplication   --n=20 --output=1_mult.pdf
 python run.py --addition        --n=20 --output=2_add.pdf
 python run.py --missingfactor   --n=20 --output=3_miss.pdf
@@ -226,6 +226,59 @@ class WorksheetGenerator:
             y = start_y - (i // per_row) * row_h
             c.drawString(x, y, f"{i+1}. {p.get_answer()}")
 
+# Add MixedWorksheetGenerator here
+class MixedWorksheetGenerator:
+    def __init__(self, problems_by_type, output_file):
+        self.problems_by_type = problems_by_type  # List of (problem_cls, problems)
+        self.output_file = output_file
+        self.all_problems = [p for _, plist in problems_by_type for p in plist]
+
+    def create_pdf(self):
+        c = canvas.Canvas(self.output_file, pagesize=letter)
+        w, h = letter
+        # Each page: 2 types, 25 each
+        page_groups = [
+            [(self.problems_by_type[0][0], self.problems_by_type[0][1]), (self.problems_by_type[1][0], self.problems_by_type[1][1])],
+            [(self.problems_by_type[2][0], self.problems_by_type[2][1]), (self.problems_by_type[3][0], self.problems_by_type[3][1])],
+        ]
+        for page_idx, group in enumerate(page_groups):
+            if page_idx:
+                c.showPage()
+            margin = 0.5 * inch
+            usable_w = w - 2 * margin
+            usable_h = h - 2 * margin
+            cols, rows = 5, 5  # 25 per group
+            col_w = usable_w / cols
+            row_h = (usable_h / 2) / rows  # half page per group
+            for group_idx, (problem_cls, problems) in enumerate(group):
+                if not problems:
+                    continue
+                y_offset = 0 if group_idx == 0 else -(usable_h / 2)
+                for i, p in enumerate(problems):
+                    col = i % cols
+                    row = i // cols
+                    x = margin + col * col_w + 0.05 * col_w
+                    y = h - margin - row * row_h - 0.15 * row_h + y_offset
+                    WorksheetGenerator._draw_single(c, p, x, y)
+        self._draw_answer_key(c, w, h)
+        c.save()
+        print(f"Worksheet saved as {self.output_file}")
+
+    def _draw_answer_key(self, c, width, height):
+        c.showPage()
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
+        c.setFont("Helvetica", 10)
+        per_row = 10
+        margin = 0.5 * inch
+        col_w = (width - 2 * margin) / per_row
+        start_y = height - 1 * inch
+        row_h = 15
+        for i, p in enumerate(self.all_problems):
+            x = margin + (i % per_row) * col_w
+            y = start_y - (i // per_row) * row_h
+            c.drawString(x, y, f"{i+1}. {p.get_answer()}")
+
 
 # -----------------------------------------------------------------------------
 # CLI helpers
@@ -245,14 +298,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate printable math worksheets (PDF).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n""",
+        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n  %(prog)s --all --n=40\n""",
     )
 
-    g = parser.add_mutually_exclusive_group(required=True)
+    g = parser.add_mutually_exclusive_group(required=False)
     g.add_argument("--multiplication", action="store_true")
     g.add_argument("--addition", action="store_true")
     g.add_argument("--missingfactor", action="store_true")
     g.add_argument("--fractioncompare", action="store_true")
+    parser.add_argument("--all", action="store_true", help="Include all problem types equally mixed")
 
     parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
     parser.add_argument("--term1", type=parse_range, help="Range for first number e.g. 2..12")
@@ -265,14 +319,53 @@ def main():
     term1_range = args.term1 or DEFAULT_TERM1_RANGE
     term2_range = args.term2 or DEFAULT_TERM2_RANGE
 
+    # Mixed worksheet logic
+    if args.all:
+        problem_types = [
+            (MultiplicationProblem, term1_range, term2_range),
+            (AdditionProblem, term1_range, term2_range),
+            (MissingFactorProblem, term1_range, term2_range),
+            (FractionComparisonProblem, term1_range, term2_range),
+        ]
+        n_types = len(problem_types)
+        n_each = args.n // n_types
+        n_left = args.n - n_each * n_types
+        problems_by_type = []
+        for i, (cls, t1, t2) in enumerate(problem_types):
+            count = n_each + (1 if i < n_left else 0)
+            recent = []
+            max_recent = 10
+            plist = []
+            for _ in range(count):
+                for _ in range(50):
+                    a = random.randint(*t1)
+                    b = random.randint(*t2)
+                    if (a, b) not in recent:
+                        plist.append(cls(a, b))
+                        recent.append((a, b))
+                        if len(recent) > max_recent:
+                            recent.pop(0)
+                        break
+                else:
+                    a = random.randint(*t1)
+                    b = random.randint(*t2)
+                    plist.append(cls(a, b))
+            problems_by_type.append((cls, plist))
+        gen = MixedWorksheetGenerator(problems_by_type, args.output)
+        gen.create_pdf()
+        return
+
+    # Legacy single-type logic
     if args.multiplication:
         cls = MultiplicationProblem
     elif args.addition:
         cls = AdditionProblem
     elif args.missingfactor:
         cls = MissingFactorProblem
-    else:
+    elif args.fractioncompare:
         cls = FractionComparisonProblem
+    else:
+        parser.error("You must specify a problem type or --all.")
 
     gen = WorksheetGenerator(cls, args.n, term1_range, term2_range, args.output)
     gen.generate_problems()
