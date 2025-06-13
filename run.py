@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Math Worksheet Generator
 
@@ -13,11 +12,13 @@ Usage:
 Features:
     - 50 problems per page in a 10x5 grid layout
     - Automatic answer key generation on final page
+    - Right-aligned problem formatting for clean appearance
     - Extensible architecture for adding new operation types
 
 Dependencies:
     pip install reportlab
 
+Author: Math Worksheet Generator
 """
 
 import argparse
@@ -26,10 +27,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 
-# Default values
+# Default values (easy to edit)
 DEFAULT_N = 100
 DEFAULT_TERM1_MIN = 2
-DEFAULT_TERM1_MAX = 15
+DEFAULT_TERM1_MAX = 12
 DEFAULT_TERM2_MIN = 2
 DEFAULT_TERM2_MAX = 20
 DEFAULT_OUTPUT = "worksheet.pdf"
@@ -82,13 +83,39 @@ class WorksheetGenerator:
         self.problems = []
         
     def generate_problems(self):
-        """Generate n random problems"""
+        """Generate n random problems, avoiding duplicates in recent problems"""
         self.problems = []
+        recent_problems = []  # Track recent problems to avoid duplicates
+        max_recent = 10  # Number of recent problems to check for duplicates
+        max_attempts = 50  # Prevent infinite loops if range is very small
+        
         for _ in range(self.n):
-            term1 = random.randint(self.term1_range[0], self.term1_range[1])
-            term2 = random.randint(self.term2_range[0], self.term2_range[1])
-            problem = self.problem_class(term1, term2)
-            self.problems.append(problem)
+            attempts = 0
+            while attempts < max_attempts:
+                term1 = random.randint(self.term1_range[0], self.term1_range[1])
+                term2 = random.randint(self.term2_range[0], self.term2_range[1])
+                
+                # Check if this problem matches any recent problems
+                problem_tuple = (term1, term2)
+                if problem_tuple not in recent_problems:
+                    problem = self.problem_class(term1, term2)
+                    self.problems.append(problem)
+                    
+                    # Add to recent problems list
+                    recent_problems.append(problem_tuple)
+                    # Keep only the last max_recent problems
+                    if len(recent_problems) > max_recent:
+                        recent_problems.pop(0)
+                    break
+                
+                attempts += 1
+            else:
+                # If we couldn't find a unique problem after max_attempts,
+                # just add a duplicate (prevents infinite loop with small ranges)
+                term1 = random.randint(self.term1_range[0], self.term1_range[1])
+                term2 = random.randint(self.term2_range[0], self.term2_range[1])
+                problem = self.problem_class(term1, term2)
+                self.problems.append(problem)
     
     def create_pdf(self):
         """Create PDF with problems and answer key"""
@@ -203,7 +230,14 @@ def parse_range(range_str):
         raise argparse.ArgumentTypeError(f"Range must be in format 'min..max', got '{range_str}'")
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate math worksheets')
+    parser = argparse.ArgumentParser(
+        description='Generate math worksheets with problems and answer keys',
+        epilog='''Examples:
+  %(prog)s --multiplication
+  %(prog)s --addition --n=50 --term1=1..20 --term2=5..15
+  %(prog)s --multiplication --term1=3..12 --term2=2..10 --output=homework.pdf''',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     
     # Operation type (mutually exclusive)
     operation_group = parser.add_mutually_exclusive_group(required=True)
@@ -213,16 +247,16 @@ def main():
                                 help='Generate addition problems')
     
     # Problem parameters
-    parser.add_argument('--n', type=int, default=DEFAULT_N,
-                       help=f'Number of problems (default: {DEFAULT_N})')
-    parser.add_argument('--term1', type=parse_range, 
+    parser.add_argument('--n', type=int, default=DEFAULT_N, metavar='NUM',
+                       help=f'Number of problems to generate (default: {DEFAULT_N})')
+    parser.add_argument('--term1', type=parse_range, metavar='MIN..MAX',
                        default=f"{DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX}",
-                       help=f'Range for first term (default: {DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX})')
-    parser.add_argument('--term2', type=parse_range,
+                       help=f'Range for first number, e.g., 2..15 (default: {DEFAULT_TERM1_MIN}..{DEFAULT_TERM1_MAX})')
+    parser.add_argument('--term2', type=parse_range, metavar='MIN..MAX',
                        default=f"{DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX}",
-                       help=f'Range for second term (default: {DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX})')
-    parser.add_argument('--output', default=DEFAULT_OUTPUT,
-                       help=f'Output filename (default: {DEFAULT_OUTPUT})')
+                       help=f'Range for second number, e.g., 3..20 (default: {DEFAULT_TERM2_MIN}..{DEFAULT_TERM2_MAX})')
+    parser.add_argument('--output', default=DEFAULT_OUTPUT, metavar='FILE',
+                       help=f'Output PDF filename (default: {DEFAULT_OUTPUT})')
     
     args = parser.parse_args()
     
