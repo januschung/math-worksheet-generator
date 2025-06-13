@@ -120,7 +120,7 @@ class FractionComparisonProblem(MathProblem):
         self.f2 = Fraction(n2, d2)
 
     def format_problem(self):
-        return [f"{self.f1.numerator}/{self.f1.denominator}  □  "
+        return [f"{self.f1.numerator}/{self.f1.denominator}  [_]  "
                 f"{self.f2.numerator}/{self.f2.denominator}"]
 
     def get_answer(self):
