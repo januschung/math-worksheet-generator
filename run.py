@@ -58,8 +58,6 @@ from reportlab.lib.units import inch
 # Defaults
 # -----------------------------------------------------------------------------
 DEFAULT_N = 100
-DEFAULT_TERM1_RANGE = (2, 12)
-DEFAULT_TERM2_RANGE = (2, 20)
 DEFAULT_OUTPUT = "worksheet.pdf"
 
 # -----------------------------------------------------------------------------
@@ -126,9 +124,20 @@ class FractionComparisonProblem(MathProblem):
     def get_answer(self):
         if self.f1 > self.f2:
             return ">"
+
         if self.f1 < self.f2:
             return "<"
         return "="
+
+
+# Default term ranges for each problem type
+# Edit these lines to adjust difficulty
+PROBLEM_DEFAULTS = {
+    MultiplicationProblem: ((10, 99), (10, 99)),  # two-digit multiplication
+    AdditionProblem: ((100, 999), (100, 999)),    # three-digit addition
+    MissingFactorProblem: ((2, 12), (2, 20)),     # original defaults
+    FractionComparisonProblem: ((2, 12), (2, 12)),
+}
 
 
 # -----------------------------------------------------------------------------
@@ -326,29 +335,26 @@ def main():
     parser.add_argument("--all", action="store_true", help="Include all problem types equally mixed")
 
     parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
-    parser.add_argument("--term1", type=parse_range, help="Range for first number e.g. 2..12")
-    parser.add_argument("--term2", type=parse_range, help="Range for second number e.g. 2..20")
+    parser.add_argument("--term1", type=parse_range, help="Range for first number")
+    parser.add_argument("--term2", type=parse_range, help="Range for second number")
     parser.add_argument("--output", default=DEFAULT_OUTPUT, help="PDF filename")
 
     args = parser.parse_args()
 
-    # fill in defaults if omitted
-    term1_range = args.term1 or DEFAULT_TERM1_RANGE
-    term2_range = args.term2 or DEFAULT_TERM2_RANGE
-
     # Mixed worksheet logic
     if args.all:
         problem_types = [
-            (MultiplicationProblem, term1_range, term2_range),
-            (AdditionProblem, term1_range, term2_range),
-            (MissingFactorProblem, term1_range, term2_range),
-            (FractionComparisonProblem, term1_range, term2_range),
+            MultiplicationProblem,
+            AdditionProblem,
+            MissingFactorProblem,
+            FractionComparisonProblem,
         ]
         n_types = len(problem_types)
         n_each = args.n // n_types
         n_left = args.n - n_each * n_types
         problems_by_type = []
-        for i, (cls, t1, t2) in enumerate(problem_types):
+        for i, cls in enumerate(problem_types):
+            t1, t2 = PROBLEM_DEFAULTS[cls]
             count = n_each + (1 if i < n_left else 0)
             recent = []
             max_recent = 10
@@ -372,7 +378,7 @@ def main():
         gen.create_pdf()
         return
 
-    # Legacy single-type logic
+    # Determine single problem type
     if args.multiplication:
         cls = MultiplicationProblem
     elif args.addition:
@@ -383,6 +389,10 @@ def main():
         cls = FractionComparisonProblem
     else:
         parser.error("You must specify a problem type or --all.")
+
+    default_t1, default_t2 = PROBLEM_DEFAULTS[cls]
+    term1_range = args.term1 or default_t1
+    term2_range = args.term2 or default_t2
 
     gen = WorksheetGenerator(cls, args.n, term1_range, term2_range, args.output)
     gen.generate_problems()
