@@ -26,10 +26,11 @@ python run.py --multiplication --n=100 --term1=2..15 --term2=2..20 --output=work
 
 ## Options
 
-- `--multiplication` or `--addition`: Problem type (required)
+- `--multiplication`, `--addition`, `--missingfactor`, `--fractioncompare`: Choose a single problem type
+- `--all`: Generate a mixed worksheet using the built‑in defaults for each type
 - `--n`: Number of problems (default: 100)
-- `--term1`: Range for first number, format `min..max` (default: 2..15)
-- `--term2`: Range for second number, format `min..max` (default: 2..20)
+- `--term1`: Range for first number (`min..max`, overrides the per‑type default when a single type is chosen)
+- `--term2`: Range for second number (`min..max`)
 - `--output`: Output PDF filename (default: worksheet.pdf)
 
 ## Output
@@ -39,10 +40,11 @@ python run.py --multiplication --n=100 --term1=2..15 --term2=2..20 --output=work
 
 ## Customization
 
-Edit the default values at the top of `run.py`:
+Edit the per‑type defaults in `run.py` by modifying `PROBLEM_DEFAULTS`:
 ```python
-DEFAULT_N = 100
-DEFAULT_TERM1_MIN = 2
-DEFAULT_TERM1_MAX = 15
-# etc.
+PROBLEM_DEFAULTS = {
+    MultiplicationProblem: ((10, 99), (10, 99)),  # two‑digit multiplication
+    AdditionProblem: ((100, 999), (100, 999)),    # three‑digit addition
+    # ...
+}
 ```
