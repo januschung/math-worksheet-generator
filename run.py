@@ -59,6 +59,7 @@ from reportlab.lib.units import inch
 # -----------------------------------------------------------------------------
 DEFAULT_N = 100
 DEFAULT_OUTPUT = "worksheet.pdf"
+# Adjust PROBLEM_DEFAULTS below to adjust question type difficulty
 
 # -----------------------------------------------------------------------------
 # Problem type classes
@@ -133,8 +134,8 @@ class FractionComparisonProblem(MathProblem):
 # Default term ranges for each problem type
 # Edit these lines to adjust difficulty
 PROBLEM_DEFAULTS = {
-    MultiplicationProblem: ((10, 99), (10, 99)),  # two-digit multiplication
-    AdditionProblem: ((100, 999), (100, 999)),    # three-digit addition
+    MultiplicationProblem: ((2, 12), (2, 16)),  # two-digit multiplication
+    AdditionProblem: ((50, 300), (10, 99)),    # three-digit addition
     MissingFactorProblem: ((2, 12), (2, 20)),     # original defaults
     FractionComparisonProblem: ((2, 12), (2, 12)),
 }
@@ -335,8 +336,8 @@ def main():
     parser.add_argument("--all", action="store_true", help="Include all problem types equally mixed")
 
     parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
-    parser.add_argument("--term1", type=parse_range, help="Range for first number")
-    parser.add_argument("--term2", type=parse_range, help="Range for second number")
+    parser.add_argument("--term1", type=parse_range, help="Range for first number e.g. 2..12")
+    parser.add_argument("--term2", type=parse_range, help="Range for second number e.g. 2..20")
     parser.add_argument("--output", default=DEFAULT_OUTPUT, help="PDF filename")
 
     args = parser.parse_args()
