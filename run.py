@@ -252,41 +252,80 @@ class MixedWorksheetGenerator:
     def create_pdf(self):
         c = canvas.Canvas(self.output_file, pagesize=letter)
         w, h = letter
-        # Each page: 2 types, 25 each
-        page_groups = [
-            [(self.problems_by_type[0][0], self.problems_by_type[0][1]), (self.problems_by_type[1][0], self.problems_by_type[1][1])],
-            [(self.problems_by_type[2][0], self.problems_by_type[2][1]), (self.problems_by_type[3][0], self.problems_by_type[3][1])],
-        ]
+
+        # Split each problem list into chunks of 25
+        chunked = []
+        for cls, plist in self.problems_by_type:
+            chunks = [plist[i : i + 25] for i in range(0, len(plist), 25)]
+            chunked.append((cls, chunks))
+
         header_height = 22  # Space for header and line
-        for page_idx, group in enumerate(page_groups):
-            if page_idx:
-                c.showPage()
-            margin = 0.5 * inch
-            usable_w = w - 2 * margin
-            usable_h = h - 2 * margin
-            cols, rows = 5, 5  # 25 per group
-            col_w = usable_w / cols
-            row_h = (usable_h / 2 - header_height) / rows  # half page per group, minus header
-            for group_idx, (problem_cls, problems) in enumerate(group):
-                if not problems:
-                    continue
-                # Calculate y offset for group (top or bottom half)
-                y_offset = 0 if group_idx == 0 else -(usable_h / 2)
-                # Header position
-                header_y = h - margin + y_offset - 2
-                c.setFont("Helvetica-Bold", 13)
-                label = self.SECTION_LABELS.get(problem_cls, str(problem_cls.__name__))
-                c.drawCentredString(w / 2, header_y, label)
-                # Draw thin line
-                c.setLineWidth(0.5)
-                c.line(margin, header_y - 5, w - margin, header_y - 5)
-                # Draw problems, shifted down by header_height
-                for i, p in enumerate(problems):
-                    col = i % cols
-                    row = i // cols
-                    x = margin + col * col_w + 0.05 * col_w
-                    y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
-                    WorksheetGenerator._draw_single(c, p, x, y)
+        margin = 0.5 * inch
+        usable_w = w - 2 * margin
+        usable_h = h - 2 * margin
+        cols, rows = 5, 5  # 25 per section
+        col_w = usable_w / cols
+        row_h = (usable_h / 2 - header_height) / rows
+
+        # Pages are rendered in pairs using the existing top/bottom layout
+        page_idx = 0
+        chunk_idx = 0
+        while True:
+            rendered = False
+            # pair (0,1)
+            if chunk_idx < max(len(chunked[0][1]), len(chunked[1][1])):
+                if page_idx:
+                    c.showPage()
+                for group_idx, group_i in enumerate([0, 1]):
+                    cls, chunks = chunked[group_i]
+                    if chunk_idx >= len(chunks):
+                        continue
+                    problems = chunks[chunk_idx]
+                    y_offset = 0 if group_idx == 0 else -(usable_h / 2)
+                    header_y = h - margin + y_offset - 2
+                    c.setFont("Helvetica-Bold", 13)
+                    label = self.SECTION_LABELS.get(cls, str(cls.__name__))
+                    c.drawCentredString(w / 2, header_y, label)
+                    c.setLineWidth(0.5)
+                    c.line(margin, header_y - 5, w - margin, header_y - 5)
+                    for i, p in enumerate(problems):
+                        col = i % cols
+                        row = i // cols
+                        x = margin + col * col_w + 0.05 * col_w
+                        y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
+                        WorksheetGenerator._draw_single(c, p, x, y)
+                page_idx += 1
+                rendered = True
+
+            # pair (2,3)
+            if chunk_idx < max(len(chunked[2][1]), len(chunked[3][1])):
+                if rendered:
+                    c.showPage()
+                for group_idx, group_i in enumerate([2, 3]):
+                    cls, chunks = chunked[group_i]
+                    if chunk_idx >= len(chunks):
+                        continue
+                    problems = chunks[chunk_idx]
+                    y_offset = 0 if group_idx == 0 else -(usable_h / 2)
+                    header_y = h - margin + y_offset - 2
+                    c.setFont("Helvetica-Bold", 13)
+                    label = self.SECTION_LABELS.get(cls, str(cls.__name__))
+                    c.drawCentredString(w / 2, header_y, label)
+                    c.setLineWidth(0.5)
+                    c.line(margin, header_y - 5, w - margin, header_y - 5)
+                    for i, p in enumerate(problems):
+                        col = i % cols
+                        row = i // cols
+                        x = margin + col * col_w + 0.05 * col_w
+                        y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
+                        WorksheetGenerator._draw_single(c, p, x, y)
+                page_idx += 1
+                rendered = True
+
+            if not rendered:
+                break
+            chunk_idx += 1
+
         self._draw_answer_key(c, w, h)
         c.save()
         print(f"Worksheet saved as {self.output_file}")
