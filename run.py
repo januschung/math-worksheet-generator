@@ -141,7 +141,7 @@ class FractionComparisonProblem(MathProblem):
 #     Numerators are chosen randomly from ``1`` up to ``denominator - 1`` so
 #     the fractions are always proper.
 PROBLEM_DEFAULTS = {
-    MultiplicationProblem: ((2, 12), (2, 16)),  # two-digit multiplication
+    MultiplicationProblem: ((3, 12), (2, 19)),  # two-digit multiplication
     AdditionProblem: ((50, 300), (10, 99)),     # three-digit addition
     MissingFactorProblem: ((2, 12), (2, 20)),   # original defaults
     FractionComparisonProblem: ((2, 12), (2, 12)),
