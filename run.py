@@ -134,7 +134,7 @@ class FractionComparisonProblem(MathProblem):
 # Default term ranges for each problem type
 # Edit these lines to adjust difficulty
 PROBLEM_DEFAULTS = {
-    MultiplicationProblem: ((2, 12), (2, 16)),  # two-digit multiplication
+    MultiplicationProblem: ((3, 12), (2, 19)),  # two-digit multiplication
     AdditionProblem: ((50, 300), (10, 99)),    # three-digit addition
     MissingFactorProblem: ((2, 12), (2, 20)),     # original defaults
     FractionComparisonProblem: ((2, 12), (2, 12)),
