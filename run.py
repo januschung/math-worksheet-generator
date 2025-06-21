@@ -131,12 +131,19 @@ class FractionComparisonProblem(MathProblem):
         return "="
 
 
-# Default term ranges for each problem type
-# Edit these lines to adjust difficulty
+# Default term ranges for each problem type.
+# Each entry is ``((term1_min, term1_max), (term2_min, term2_max))``.
+# The terms mean different things for each class:
+#   - ``MultiplicationProblem`` – ranges for the two factors.
+#   - ``AdditionProblem`` – ranges for the two addends.
+#   - ``MissingFactorProblem`` – factor ranges used to build the equation.
+#   - ``FractionComparisonProblem`` – ranges for the two denominators.
+#     Numerators are chosen randomly from ``1`` up to ``denominator - 1`` so
+#     the fractions are always proper.
 PROBLEM_DEFAULTS = {
     MultiplicationProblem: ((2, 12), (2, 16)),  # two-digit multiplication
-    AdditionProblem: ((50, 300), (10, 99)),    # three-digit addition
-    MissingFactorProblem: ((2, 12), (2, 20)),     # original defaults
+    AdditionProblem: ((50, 300), (10, 99)),     # three-digit addition
+    MissingFactorProblem: ((2, 12), (2, 20)),   # original defaults
     FractionComparisonProblem: ((2, 12), (2, 12)),
 }
 
