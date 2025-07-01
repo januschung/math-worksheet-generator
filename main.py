@@ -137,7 +137,6 @@ async def serve_pdf(filename: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    """Simple vanilla‑JS page to create worksheets and preview PDFs inline."""
     html = """
     <!doctype html>
     <html lang='en'>
@@ -146,12 +145,18 @@ async def index():
       <meta name='viewport' content='width=device-width, initial-scale=1'>
       <title>Math Worksheet Generator</title>
       <style>
-        body{font-family:sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;line-height:1.4}
-        fieldset{border:1px solid #ccc;margin-bottom:1rem}
-        .row{display:flex;flex-wrap:wrap;align-items:center;margin:0.25rem 0}
-        .row label{min-width:160px}
+        body{font-family:sans-serif;max-width:800px;margin:2rem auto;padding:0 1rem;line-height:1.4;background:#f9f9fb}
+        fieldset{border:1px solid #ccc;margin-bottom:1rem;background:#fff;padding:1rem 1.5rem;border-radius:8px;box-shadow:0 2px 8px #0001}
+        .row{display:flex;flex-wrap:wrap;align-items:center;margin:0.5rem 0}
+        .row label{min-width:160px;font-weight:500}
         .row input[type=text]{width:90px;margin-left:0.25rem}
+        .row input[type=text]:disabled{background:#eee}
+        .default-hint{color:#888;font-size:0.95em;margin-left:0.5em}
+        .reset-btn{margin-left:0.5em;font-size:0.9em;padding:0.1em 0.5em;border-radius:4px;border:1px solid #ccc;background:#f3f3f3;cursor:pointer}
+        .reset-btn:disabled{color:#aaa;border-color:#eee;background:#fafafa;cursor:default}
         input[type=number]{width:80px}
+        button[type=submit]{margin-left:0.5rem;padding:0.4em 1.2em;font-size:1.1em;border-radius:6px;border:1px solid #888;background:#4a90e2;color:#fff;cursor:pointer}
+        button[type=submit]:hover{background:#357ab8}
         iframe{border:1px solid #ccc;margin-top:1rem}
       </style>
     </head>
@@ -164,74 +169,112 @@ async def index():
 
           <div class='row' data-type='multiplication'>
             <label><input type='checkbox' name='ptype' value='multiplication'>Multiplication</label>
-            term1 <input type='text' id='multiplication_term1' placeholder='min..max'>
-            term2 <input type='text' id='multiplication_term2' placeholder='min..max'>
+            term1 <input type='text' id='multiplication_term1'>
+            term2 <input type='text' id='multiplication_term2'>
+            <span class="default-hint" id="multiplication_hint"></span>
+            <button type="button" class="reset-btn" id="multiplication_reset">Reset</button>
           </div>
           <div class='row' data-type='addition'>
             <label><input type='checkbox' name='ptype' value='addition'>Addition</label>
-            term1 <input type='text' id='addition_term1' placeholder='min..max'>
-            term2 <input type='text' id='addition_term2' placeholder='min..max'>
+            term1 <input type='text' id='addition_term1'>
+            term2 <input type='text' id='addition_term2'>
+            <span class="default-hint" id="addition_hint"></span>
+            <button type="button" class="reset-btn" id="addition_reset">Reset</button>
           </div>
           <div class='row' data-type='subtraction'>
             <label><input type='checkbox' name='ptype' value='subtraction'>Subtraction</label>
-            term1 <input type='text' id='subtraction_term1' placeholder='min..max'>
-            term2 <input type='text' id='subtraction_term2' placeholder='min..max'>
+            term1 <input type='text' id='subtraction_term1'>
+            term2 <input type='text' id='subtraction_term2'>
+            <span class="default-hint" id="subtraction_hint"></span>
+            <button type="button" class="reset-btn" id="subtraction_reset">Reset</button>
           </div>
           <div class='row' data-type='division'>
             <label><input type='checkbox' name='ptype' value='division'>Division</label>
-            term1 <input type='text' id='division_term1' placeholder='min..max'>
-            term2 <input type='text' id='division_term2' placeholder='min..max'>
+            term1 <input type='text' id='division_term1'>
+            term2 <input type='text' id='division_term2'>
+            <span class="default-hint" id="division_hint"></span>
+            <button type="button" class="reset-btn" id="division_reset">Reset</button>
           </div>
           <div class='row' data-type='missingfactor'>
             <label><input type='checkbox' name='ptype' value='missingfactor'>Missing&nbsp;Factor</label>
-            term1 <input type='text' id='missingfactor_term1' placeholder='min..max'>
-            term2 <input type='text' id='missingfactor_term2' placeholder='min..max'>
+            term1 <input type='text' id='missingfactor_term1'>
+            term2 <input type='text' id='missingfactor_term2'>
+            <span class="default-hint" id="missingfactor_hint"></span>
+            <button type="button" class="reset-btn" id="missingfactor_reset">Reset</button>
           </div>
           <div class='row' data-type='fractioncompare'>
             <label><input type='checkbox' name='ptype' value='fractioncompare'>Fraction&nbsp;Compare</label>
-            term1 <input type='text' id='fractioncompare_term1' placeholder='min..max'>
-            term2 <input type='text' id='fractioncompare_term2' placeholder='min..max'>
+            term1 <input type='text' id='fractioncompare_term1'>
+            term2 <input type='text' id='fractioncompare_term2'>
+            <span class="default-hint" id="fractioncompare_hint"></span>
+            <button type="button" class="reset-btn" id="fractioncompare_reset">Reset</button>
           </div>
         </fieldset>
 
         <label>Problems per type: <input type='number' name='n' id='n' value='100' min='1'></label>
-        <button type='submit' style='margin-left:0.5rem'>Generate</button>
+        <button type='submit'>Generate</button>
       </form>
 
       <h2>Preview</h2>
       <iframe id='preview' style='width:100%;height:80vh'></iframe>
 
 <script>
-(function(){
+(async function(){
   const form = document.getElementById('cfg');
   const frame = document.getElementById('preview');
+  const defaults = await fetch('/defaults').then(r => r.json());
+  const types = Object.keys(defaults);
+
+  // Prepopulate and set up UI for each type
+  for(const t of types){
+    const t1 = document.getElementById(`${t}_term1`);
+    const t2 = document.getElementById(`${t}_term2`);
+    const hint = document.getElementById(`${t}_hint`);
+    const reset = document.getElementById(`${t}_reset`);
+    t1.value = defaults[t].term1;
+    t2.value = defaults[t].term2;
+    t1.placeholder = defaults[t].term1;
+    t2.placeholder = defaults[t].term2;
+    hint.textContent = `(default: ${defaults[t].term1}, ${defaults[t].term2})`;
+    t1.disabled = true;
+    t2.disabled = true;
+    reset.disabled = true;
+    reset.addEventListener('click', () => {
+      t1.value = defaults[t].term1;
+      t2.value = defaults[t].term2;
+    });
+    // Enable/disable term fields based on checkbox
+    const cb = document.querySelector(`input[name='ptype'][value='${t}']`);
+    cb.addEventListener('change', () => {
+      t1.disabled = t2.disabled = reset.disabled = !cb.checked;
+      if(!cb.checked){
+        t1.value = defaults[t].term1;
+        t2.value = defaults[t].term2;
+      }
+    });
+  }
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
-
     const checked = Array.from(document.querySelectorAll('input[name="ptype"]:checked'));
     if(!checked.length){ alert('Choose at least one problem type'); return; }
-
     const problem_types = checked.map(cb => cb.value);
     const n = parseInt(document.getElementById('n').value, 10) || 0;
     if(n <= 0){ alert('N must be positive'); return; }
-
-    const defaults = {};
+    const defaultsPayload = {};
     for(const t of problem_types){
       const t1 = document.getElementById(`${t}_term1`).value.trim();
       const t2 = document.getElementById(`${t}_term2`).value.trim();
-      if(t1 || t2){
+      if(t1 !== defaults[t].term1 || t2 !== defaults[t].term2){
         if(!(t1 && t2)){
-          alert(`Fill BOTH term ranges for ${t} or clear both`);
+          alert(`Fill BOTH term ranges for ${t} or reset both`);
           return;
         }
-        defaults[t] = {term1:t1, term2:t2};
+        defaultsPayload[t] = {term1:t1, term2:t2};
       }
     }
-
     const payload = {problem_types, n};
-    if(Object.keys(defaults).length) payload.defaults = defaults;
-
+    if(Object.keys(defaultsPayload).length) payload.defaults = defaultsPayload;
     try{
       const res = await fetch('/generate', {
         method:'POST',
@@ -255,7 +298,18 @@ async def index():
     </body>
     </html>
     """
-    return html
+    return HTMLResponse(content=html)
+
+@app.get("/defaults")
+async def get_defaults():
+    return {
+        name: {
+            "term1": f"{rng[0][0]}..{rng[0][1]}",
+            "term2": f"{rng[1][0]}..{rng[1][1]}"
+        }
+        for name, cls in PROBLEM_CLASS_MAP.items()
+        for rng in [worksheet_core.PROBLEM_DEFAULTS[cls]]
+    }
 
 # Expose generated PDFs via /pdf/* so direct links work too.
 app.mount("/pdf", StaticFiles(directory=OUTPUT_DIR), name="pdf")
