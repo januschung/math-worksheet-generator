@@ -29,16 +29,13 @@ python run.py --multiplication --n=100 --term1=2..15 --term2=2..20 --output=work
 
 ## Options
 
-- `--multiplication`, `--addition`, `--missingfactor`, `--fractioncompare`: Select one or more problem types. When more than one is chosen, built‑in defaults are used for each type.
-- `--all`: Generate a mixed worksheet using the built‑in defaults for each type.
-  When more than 25 problems are requested for a type, extra pages are added in
-  25‑problem sections and the answer key is placed after the last problem page.
-- `--n`: Number of problems (default: 100)
-- `--term1`: Range for first number (`min..max`, overrides the per‑type default when a single type is chosen)
+- `--multiplication`, `--addition`, `--subtraction`, `--division`, `--missingfactor`, `--fractioncompare`: Select one or more problem types. When more than one is chosen, built‑in defaults are used for each type and `--term1/--term2` are not allowed.
+- `--n`: Number of problems **per selected type** (default: 100)
+- `--term1`: Range for first number (`min..max`, only with a single type)
 - `--term2`: Range for second number (`min..max`)
 - `--output`: Output PDF filename (default: worksheet.pdf)
 
-When multiple problem types are selected, custom term ranges are ignored and the defaults for each type are used.
+When multiple problem types are selected, each type receives the specified number of problems and the built‑in defaults are used for term ranges.
 ## Output
 
 - **Worksheet Pages**: 50 problems per page in a 10×5 grid
