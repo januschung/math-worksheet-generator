@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from uuid import uuid4
-import run  # reuse CLI module as a library
+import worksheet_core
 
 app = FastAPI(title="Math Worksheet Web API")
 
@@ -14,22 +14,19 @@ OUTPUT_DIR = Path(__file__).parent / "generated"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 PROBLEM_CLASS_MAP = {
-    "multiplication": run.MultiplicationProblem,
-    "addition": run.AdditionProblem,
-    "subtraction": run.SubtractionProblem,
-    "division": run.DivisionProblem,
-    "missingfactor": run.MissingFactorProblem,
-    "fractioncompare": run.FractionComparisonProblem,
+    "multiplication": worksheet_core.MultiplicationProblem,
+    "addition": worksheet_core.AdditionProblem,
+    "subtraction": worksheet_core.SubtractionProblem,
+    "division": worksheet_core.DivisionProblem,
+    "missingfactor": worksheet_core.MissingFactorProblem,
+    "fractioncompare": worksheet_core.FractionComparisonProblem,
 }
 
 
 def parse_range(txt: str):
     """Parse "min..max" → (min, max)."""
     try:
-        lo, hi = map(int, txt.split(".."))
-        if lo > hi:
-            raise ValueError
-        return lo, hi
+        return worksheet_core.parse_range(txt)
     except ValueError:
         raise HTTPException(status_code=400, detail="Ranges must be in 'min..max' format with min ≤ max")
 
@@ -71,7 +68,7 @@ async def generate_worksheet(payload: dict):
         classes.append(cls)
 
     try:
-        n = int(payload.get("n", run.DEFAULT_N))
+        n = int(payload.get("n", worksheet_core.DEFAULT_N))
     except (TypeError, ValueError):
         raise HTTPException(status_code=400, detail="'n' must be an integer")
     if n <= 0:
@@ -79,7 +76,7 @@ async def generate_worksheet(payload: dict):
 
     # ---------- Per‑request default overrides ----------
     overrides_raw = payload.get("defaults", {})
-    overrides = {}
+    per_type_ranges = {}
     for name, rng in overrides_raw.items():
         cls = PROBLEM_CLASS_MAP.get(name.lower())
         if not cls:
@@ -89,64 +86,43 @@ async def generate_worksheet(payload: dict):
             t2 = parse_range(rng["term2"])
         except KeyError:
             raise HTTPException(status_code=400, detail=f"Both term1 and term2 must be provided for {name}")
-        overrides[cls] = (t1, t2)
+        per_type_ranges[cls] = (t1, t2)
 
-    original_defaults = {}
-    try:
-        # Apply overrides
-        for cls, rng in overrides.items():
-            original_defaults[cls] = run.PROBLEM_DEFAULTS[cls]
-            run.PROBLEM_DEFAULTS[cls] = rng
+    file_id = uuid4().hex
+    out_path = OUTPUT_DIR / f"worksheet_{file_id}.pdf"
 
-        # ---------- PDF generation ----------
-        file_id = uuid4().hex
-        out_path = OUTPUT_DIR / f"worksheet_{file_id}.pdf"
-
-        if len(classes) == 1:
-            # Single‑type worksheet (still supports term1/term2)
-            cls = classes[0]
-            term1_txt = payload.get("term1")
-            term2_txt = payload.get("term2")
-            if (term1_txt is None) ^ (term2_txt is None):
-                raise HTTPException(status_code=400, detail="Provide BOTH term1 and term2 or neither")
-            if term1_txt:
-                term1_range = parse_range(term1_txt)
-                term2_range = parse_range(term2_txt)
-            else:
-                term1_range, term2_range = run.PROBLEM_DEFAULTS[cls]
-            gen = run.WorksheetGenerator(cls, n, term1_range, term2_range, str(out_path))
-            gen.generate_problems()
-            gen.create_pdf()
+    if len(classes) == 1:
+        cls = classes[0]
+        term1_txt = payload.get("term1")
+        term2_txt = payload.get("term2")
+        if (term1_txt is None) ^ (term2_txt is None):
+            raise HTTPException(status_code=400, detail="Provide BOTH term1 and term2 or neither")
+        if term1_txt:
+            term1_range = parse_range(term1_txt)
+            term2_range = parse_range(term2_txt)
+        elif cls in per_type_ranges:
+            term1_range, term2_range = per_type_ranges[cls]
         else:
-            if payload.get("term1") or payload.get("term2"):
-                raise HTTPException(status_code=400, detail="term1/term2 not allowed with multiple types")
+            term1_range, term2_range = worksheet_core.PROBLEM_DEFAULTS[cls]
+        gen = worksheet_core.WorksheetGenerator(cls, n, term1_range, term2_range, str(out_path))
+        gen.generate_problems()
+        gen.create_pdf()
+    else:
+        if payload.get("term1") or payload.get("term2"):
+            raise HTTPException(status_code=400, detail="term1/term2 not allowed with multiple types")
+        problems_by_type = []
+        for cls in classes:
+            if cls in per_type_ranges:
+                t1, t2 = per_type_ranges[cls]
+            else:
+                t1, t2 = worksheet_core.PROBLEM_DEFAULTS[cls]
+            plist = worksheet_core.make_problems(cls, n, t1, t2)
+            problems_by_type.append((cls, plist))
+        gen = worksheet_core.MixedWorksheetGenerator(problems_by_type, str(out_path))
+        gen.create_pdf()
 
-            problems_by_type = []
-            for cls in classes:
-                t1, t2 = run.PROBLEM_DEFAULTS[cls]
-                plist, recent = [], []
-                for _ in range(n):
-                    for _ in range(50):
-                        a = run.random.randint(*t1)
-                        b = run.random.randint(*t2)
-                        if (a, b) not in recent:
-                            plist.append(cls(a, b))
-                            recent.append((a, b))
-                            if len(recent) > 10:
-                                recent.pop(0)
-                            break
-                    else:
-                        plist.append(cls(run.random.randint(*t1), run.random.randint(*t2)))
-                problems_by_type.append((cls, plist))
-            gen = run.MixedWorksheetGenerator(problems_by_type, str(out_path))
-            gen.create_pdf()
-
-        clean_old_files()
-        return {"url": f"/pdf/{out_path.name}"}
-    finally:
-        # Restore globals so overrides don't leak between requests
-        for cls, rng in original_defaults.items():
-            run.PROBLEM_DEFAULTS[cls] = rng
+    clean_old_files()
+    return {"url": f"/pdf/{out_path.name}"}
 
 
 @app.get("/pdf/{filename}")
