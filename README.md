@@ -20,13 +20,16 @@ python run.py --multiplication --n=50 --term1=3..12 --term2=2..15 --output=homew
 # Addition worksheet
 python run.py --addition --n=200 --term1=10..99 --term2=1..50
 
+# Mixed worksheet with two types (defaults only)
+python run.py --multiplication --addition --n=60
+
 # Full example
 python run.py --multiplication --n=100 --term1=2..15 --term2=2..20 --output=worksheet.pdf
 ```
 
 ## Options
 
-- `--multiplication`, `--addition`, `--missingfactor`, `--fractioncompare`: Choose a single problem type
+- `--multiplication`, `--addition`, `--missingfactor`, `--fractioncompare`: Select one or more problem types. When more than one is chosen, built‑in defaults are used for each type.
 - `--all`: Generate a mixed worksheet using the built‑in defaults for each type.
   When more than 25 problems are requested for a type, extra pages are added in
   25‑problem sections and the answer key is placed after the last problem page.
@@ -35,6 +38,7 @@ python run.py --multiplication --n=100 --term1=2..15 --term2=2..20 --output=work
 - `--term2`: Range for second number (`min..max`)
 - `--output`: Output PDF filename (default: worksheet.pdf)
 
+When multiple problem types are selected, custom term ranges are ignored and the defaults for each type are used.
 ## Output
 
 - **Worksheet Pages**: 50 problems per page in a 10×5 grid

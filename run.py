@@ -371,14 +371,13 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate printable math worksheets (PDF).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n  %(prog)s --all --n=40\n""",
+        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n  %(prog)s --multiplication --addition --n=60\n  %(prog)s --all --n=40\n""",
     )
 
-    g = parser.add_mutually_exclusive_group(required=False)
-    g.add_argument("--multiplication", action="store_true")
-    g.add_argument("--addition", action="store_true")
-    g.add_argument("--missingfactor", action="store_true")
-    g.add_argument("--fractioncompare", action="store_true")
+    parser.add_argument("--multiplication", action="store_true", help="Include multiplication problems")
+    parser.add_argument("--addition", action="store_true", help="Include addition problems")
+    parser.add_argument("--missingfactor", action="store_true", help="Include missing-factor problems")
+    parser.add_argument("--fractioncompare", action="store_true", help="Include fraction comparison problems")
     parser.add_argument("--all", action="store_true", help="Include all problem types equally mixed")
 
     parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
@@ -388,61 +387,71 @@ def main():
 
     args = parser.parse_args()
 
-    # Mixed worksheet logic
-    if args.all:
-        problem_types = [
-            MultiplicationProblem,
-            AdditionProblem,
-            MissingFactorProblem,
-            FractionComparisonProblem,
-        ]
-        n_types = len(problem_types)
-        n_each = args.n // n_types
-        n_left = args.n - n_each * n_types
-        problems_by_type = []
-        for i, cls in enumerate(problem_types):
-            t1, t2 = PROBLEM_DEFAULTS[cls]
-            count = n_each + (1 if i < n_left else 0)
-            recent = []
-            max_recent = 10
-            plist = []
-            for _ in range(count):
-                for _ in range(50):
-                    a = random.randint(*t1)
-                    b = random.randint(*t2)
-                    if (a, b) not in recent:
-                        plist.append(cls(a, b))
-                        recent.append((a, b))
-                        if len(recent) > max_recent:
-                            recent.pop(0)
-                        break
-                else:
-                    a = random.randint(*t1)
-                    b = random.randint(*t2)
+    def make_problems(cls, count):
+        t1, t2 = PROBLEM_DEFAULTS[cls]
+        recent = []
+        max_recent = 10
+        plist = []
+        for _ in range(count):
+            for _ in range(50):
+                a = random.randint(*t1)
+                b = random.randint(*t2)
+                if (a, b) not in recent:
                     plist.append(cls(a, b))
-            problems_by_type.append((cls, plist))
-        gen = MixedWorksheetGenerator(problems_by_type, args.output)
+                    recent.append((a, b))
+                    if len(recent) > max_recent:
+                        recent.pop(0)
+                    break
+            else:
+                a = random.randint(*t1)
+                b = random.randint(*t2)
+                plist.append(cls(a, b))
+        return plist
+
+    mapping = [
+        (args.multiplication, MultiplicationProblem),
+        (args.addition, AdditionProblem),
+        (args.missingfactor, MissingFactorProblem),
+        (args.fractioncompare, FractionComparisonProblem),
+    ]
+
+    if args.all:
+        selected_classes = [cls for _, cls in mapping]
+    else:
+        selected_classes = [cls for flag, cls in mapping if flag]
+
+    if not selected_classes:
+        parser.error("You must specify a problem type or --all.")
+
+    if len(selected_classes) == 1:
+        cls = selected_classes[0]
+        default_t1, default_t2 = PROBLEM_DEFAULTS[cls]
+        term1_range = args.term1 or default_t1
+        term2_range = args.term2 or default_t2
+        gen = WorksheetGenerator(cls, args.n, term1_range, term2_range, args.output)
+        gen.generate_problems()
         gen.create_pdf()
         return
 
-    # Determine single problem type
-    if args.multiplication:
-        cls = MultiplicationProblem
-    elif args.addition:
-        cls = AdditionProblem
-    elif args.missingfactor:
-        cls = MissingFactorProblem
-    elif args.fractioncompare:
-        cls = FractionComparisonProblem
-    else:
-        parser.error("You must specify a problem type or --all.")
+    if args.term1 or args.term2:
+        parser.error("--term1/--term2 cannot be used with multiple problem types")
 
-    default_t1, default_t2 = PROBLEM_DEFAULTS[cls]
-    term1_range = args.term1 or default_t1
-    term2_range = args.term2 or default_t2
+    n_types = len(selected_classes)
+    n_each = args.n // n_types
+    n_left = args.n - n_each * n_types
 
-    gen = WorksheetGenerator(cls, args.n, term1_range, term2_range, args.output)
-    gen.generate_problems()
+    problems_by_type = []
+    selected_idx = 0
+    for _, cls in mapping:
+        if cls in selected_classes:
+            count = n_each + (1 if selected_idx < n_left else 0)
+            selected_idx += 1
+            plist = make_problems(cls, count)
+        else:
+            plist = []
+        problems_by_type.append((cls, plist))
+
+    gen = MixedWorksheetGenerator(problems_by_type, args.output)
     gen.create_pdf()
 
 
