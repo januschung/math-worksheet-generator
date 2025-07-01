@@ -4,12 +4,14 @@ Math Worksheet Generator (stable v2)
 ===================================
 
 Generates printable PDF worksheets containing math practice problems and an
-answer key.  Now supports four problem types:
+answer key.  Now supports six problem types:
 
 1. Multiplication (vertical layout)
 2. Addition (vertical layout)
 3. Missing‑factor / relational‑thinking equations
 4. Fraction‑magnitude comparison (□ stands for <, =, >)
+5. Subtraction
+6. Division
 
 Changes in **v2 (this version)**
 --------------------------------
@@ -96,6 +98,30 @@ class AdditionProblem(MathProblem):
         return str(self.a + self.b)
 
 
+class SubtractionProblem(MathProblem):
+    def __init__(self, a, b):
+        self.a, self.b = a, b
+
+    def format_problem(self):
+        return [f"{self.a}", f"- {self.b}", "___"]
+
+    def get_answer(self):
+        return str(self.a - self.b)
+
+
+class DivisionProblem(MathProblem):
+    def __init__(self, divisor, quotient):
+        self.divisor = divisor
+        self.quotient = quotient
+        self.dividend = divisor * quotient
+
+    def format_problem(self):
+        return [f"{self.dividend}", f"÷ {self.divisor}", "___"]
+
+    def get_answer(self):
+        return str(self.quotient)
+
+
 class MissingFactorProblem(MathProblem):
     def __init__(self, a, b):
         self.a, self.b = a, b
@@ -140,10 +166,15 @@ class FractionComparisonProblem(MathProblem):
 #   - ``FractionComparisonProblem`` – ranges for the two denominators.
 #     Numerators are chosen randomly from ``1`` up to ``denominator - 1`` so
 #     the fractions are always proper.
+#   - ``SubtractionProblem`` – ranges for the minuend and subtrahend.
+#   - ``DivisionProblem`` – divisor range and quotient range; the dividend is
+#     the product of the two.
 PROBLEM_DEFAULTS = {
     MultiplicationProblem: ((3, 12), (2, 19)),  # two-digit multiplication
     AdditionProblem: ((50, 300), (10, 99)),     # three-digit addition
+    SubtractionProblem: ((10, 99), (10, 99)),   # allow negatives
     MissingFactorProblem: ((2, 12), (2, 20)),   # original defaults
+    DivisionProblem: ((2, 12), (2, 12)),        # divisor and quotient ranges
     FractionComparisonProblem: ((2, 12), (2, 12)),
 }
 
@@ -248,6 +279,8 @@ class MixedWorksheetGenerator:
     SECTION_LABELS = {
         MultiplicationProblem: "Multiplication",
         AdditionProblem: "Addition",
+        SubtractionProblem: "Subtraction",
+        DivisionProblem: "Division",
         MissingFactorProblem: "Missing Factor",
         FractionComparisonProblem: "Fraction Comparison",
     }
@@ -260,36 +293,40 @@ class MixedWorksheetGenerator:
         c = canvas.Canvas(self.output_file, pagesize=letter)
         w, h = letter
 
-        # Split each problem list into chunks of 25
+        groups = [(cls, plist) for cls, plist in self.problems_by_type if plist]
         chunked = []
-        for cls, plist in self.problems_by_type:
+        for cls, plist in groups:
             chunks = [plist[i : i + 25] for i in range(0, len(plist), 25)]
             chunked.append((cls, chunks))
 
-        header_height = 22  # Space for header and line
+        header_height = 22
         margin = 0.5 * inch
         usable_w = w - 2 * margin
         usable_h = h - 2 * margin
-        cols, rows = 5, 5  # 25 per section
+        cols, rows = 5, 5
         col_w = usable_w / cols
         row_h = (usable_h / 2 - header_height) / rows
 
-        # Pages are rendered in pairs using the existing top/bottom layout
         page_idx = 0
         chunk_idx = 0
         while True:
             rendered = False
-            # pair (0,1)
-            if chunk_idx < max(len(chunked[0][1]), len(chunked[1][1])):
-                if page_idx:
+            for pair_i in range(0, len(chunked), 2):
+                top = chunked[pair_i]
+                bottom = chunked[pair_i + 1] if pair_i + 1 < len(chunked) else None
+                top_ok = chunk_idx < len(top[1])
+                bottom_ok = bottom and chunk_idx < len(bottom[1])
+                if not (top_ok or bottom_ok):
+                    continue
+                if page_idx or rendered:
                     c.showPage()
-                for group_idx, group_i in enumerate([0, 1]):
-                    cls, chunks = chunked[group_i]
-                    if chunk_idx >= len(chunks):
+                for idx, group in enumerate([top, bottom]):
+                    if not group or chunk_idx >= len(group[1]):
                         continue
+                    cls, chunks = group
                     problems = chunks[chunk_idx]
-                    y_offset = 0 if group_idx == 0 else -(usable_h / 2)
-                    header_y = h - margin + y_offset - 2
+                    y_off = 0 if idx == 0 else -(usable_h / 2)
+                    header_y = h - margin + y_off - 2
                     c.setFont("Helvetica-Bold", 13)
                     label = self.SECTION_LABELS.get(cls, str(cls.__name__))
                     c.drawCentredString(w / 2, header_y, label)
@@ -299,32 +336,9 @@ class MixedWorksheetGenerator:
                         col = i % cols
                         row = i // cols
                         x = margin + col * col_w + 0.05 * col_w
-                        y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
-                        WorksheetGenerator._draw_single(c, p, x, y)
-                page_idx += 1
-                rendered = True
-
-            # pair (2,3)
-            if chunk_idx < max(len(chunked[2][1]), len(chunked[3][1])):
-                if rendered:
-                    c.showPage()
-                for group_idx, group_i in enumerate([2, 3]):
-                    cls, chunks = chunked[group_i]
-                    if chunk_idx >= len(chunks):
-                        continue
-                    problems = chunks[chunk_idx]
-                    y_offset = 0 if group_idx == 0 else -(usable_h / 2)
-                    header_y = h - margin + y_offset - 2
-                    c.setFont("Helvetica-Bold", 13)
-                    label = self.SECTION_LABELS.get(cls, str(cls.__name__))
-                    c.drawCentredString(w / 2, header_y, label)
-                    c.setLineWidth(0.5)
-                    c.line(margin, header_y - 5, w - margin, header_y - 5)
-                    for i, p in enumerate(problems):
-                        col = i % cols
-                        row = i // cols
-                        x = margin + col * col_w + 0.05 * col_w
-                        y = h - margin - row * row_h - 0.15 * row_h + y_offset - header_height
+                        y = (
+                            h - margin - row * row_h - 0.15 * row_h + y_off - header_height
+                        )
                         WorksheetGenerator._draw_single(c, p, x, y)
                 page_idx += 1
                 rendered = True
@@ -371,14 +385,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Generate printable math worksheets (PDF).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n  %(prog)s --multiplication --addition --n=60\n  %(prog)s --all --n=40\n""",
+        epilog="""Examples:\n  %(prog)s --multiplication --n=30\n  %(prog)s --fractioncompare --n=40 --term1=2..12 --term2=2..12\n  %(prog)s --multiplication --addition --n=60\n""",
     )
 
     parser.add_argument("--multiplication", action="store_true", help="Include multiplication problems")
     parser.add_argument("--addition", action="store_true", help="Include addition problems")
+    parser.add_argument("--subtraction", action="store_true", help="Include subtraction problems")
+    parser.add_argument("--division", action="store_true", help="Include division problems")
     parser.add_argument("--missingfactor", action="store_true", help="Include missing-factor problems")
     parser.add_argument("--fractioncompare", action="store_true", help="Include fraction comparison problems")
-    parser.add_argument("--all", action="store_true", help="Include all problem types equally mixed")
 
     parser.add_argument("--n", type=int, default=DEFAULT_N, help="Number of problems")
     parser.add_argument("--term1", type=parse_range, help="Range for first number e.g. 2..12")
@@ -411,17 +426,16 @@ def main():
     mapping = [
         (args.multiplication, MultiplicationProblem),
         (args.addition, AdditionProblem),
+        (args.subtraction, SubtractionProblem),
+        (args.division, DivisionProblem),
         (args.missingfactor, MissingFactorProblem),
         (args.fractioncompare, FractionComparisonProblem),
     ]
 
-    if args.all:
-        selected_classes = [cls for _, cls in mapping]
-    else:
-        selected_classes = [cls for flag, cls in mapping if flag]
+    selected_classes = [cls for flag, cls in mapping if flag]
 
     if not selected_classes:
-        parser.error("You must specify a problem type or --all.")
+        parser.error("You must specify at least one problem type.")
 
     if len(selected_classes) == 1:
         cls = selected_classes[0]
@@ -436,19 +450,9 @@ def main():
     if args.term1 or args.term2:
         parser.error("--term1/--term2 cannot be used with multiple problem types")
 
-    n_types = len(selected_classes)
-    n_each = args.n // n_types
-    n_left = args.n - n_each * n_types
-
     problems_by_type = []
-    selected_idx = 0
     for _, cls in mapping:
-        if cls in selected_classes:
-            count = n_each + (1 if selected_idx < n_left else 0)
-            selected_idx += 1
-            plist = make_problems(cls, count)
-        else:
-            plist = []
+        plist = make_problems(cls, args.n) if cls in selected_classes else []
         problems_by_type.append((cls, plist))
 
     gen = MixedWorksheetGenerator(problems_by_type, args.output)
