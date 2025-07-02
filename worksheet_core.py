@@ -1,3 +1,8 @@
+"""
+worksheet_core.py
+-----------------
+Core logic for generating math worksheet problems and PDFs. Contains all problem type classes, worksheet generators, and helpers. No CLI or web dependencies. All logic is parameterized and stateless.
+"""
 import random
 from fractions import Fraction
 from reportlab.lib.pagesizes import letter
@@ -8,13 +13,16 @@ from reportlab.lib.units import inch
 # Problem type classes
 # -----------------------------------------------------------------------------
 class MathProblem:
-    """Abstract base for printable items."""
+    """Abstract base for printable math problems."""
     def format_problem(self):
+        """Return a list of strings representing the problem for display."""
         raise NotImplementedError
     def get_answer(self):
+        """Return the answer as a string."""
         raise NotImplementedError
 
 class MultiplicationProblem(MathProblem):
+    """A multiplication problem: a × b = ___"""
     def __init__(self, a, b):
         self.a, self.b = a, b
     def format_problem(self):
@@ -23,6 +31,7 @@ class MultiplicationProblem(MathProblem):
         return str(self.a * self.b)
 
 class AdditionProblem(MathProblem):
+    """An addition problem: a + b = ___"""
     def __init__(self, a, b):
         self.a, self.b = a, b
     def format_problem(self):
@@ -31,6 +40,7 @@ class AdditionProblem(MathProblem):
         return str(self.a + self.b)
 
 class SubtractionProblem(MathProblem):
+    """A subtraction problem: a - b = ___"""
     def __init__(self, a, b):
         self.a, self.b = a, b
     def format_problem(self):
@@ -39,6 +49,7 @@ class SubtractionProblem(MathProblem):
         return str(self.a - self.b)
 
 class DivisionProblem(MathProblem):
+    """A division problem: (dividend) ÷ (divisor) = ___ (quotient)"""
     def __init__(self, divisor, quotient):
         self.divisor = divisor
         self.quotient = quotient
@@ -49,6 +60,7 @@ class DivisionProblem(MathProblem):
         return str(self.quotient)
 
 class MissingFactorProblem(MathProblem):
+    """A missing-factor multiplication: __ × b = prod or a × __ = prod"""
     def __init__(self, a, b):
         self.a, self.b = a, b
         self.prod = a * b
@@ -61,6 +73,7 @@ class MissingFactorProblem(MathProblem):
         return str(self.a if self.blank_left else self.b)
 
 class FractionComparisonProblem(MathProblem):
+    """A fraction comparison: n1/d1 [__] n2/d2, answer is <, =, or >"""
     def __init__(self, d1, d2):
         n1 = random.randint(1, d1 - 1)
         n2 = random.randint(1, d2 - 1)
@@ -93,7 +106,16 @@ DEFAULT_N = 100
 # Worksheet generator
 # -----------------------------------------------------------------------------
 class WorksheetGenerator:
+    """Generates a worksheet PDF for a single problem type."""
     def __init__(self, problem_cls, n, term1_range, term2_range, output_file):
+        """
+        Args:
+            problem_cls: The problem class (e.g., MultiplicationProblem)
+            n: Number of problems
+            term1_range: Tuple (min, max) for first term
+            term2_range: Tuple (min, max) for second term
+            output_file: Path to output PDF
+        """
         self.problem_cls = problem_cls
         self.n = n
         self.term1_range = term1_range
@@ -102,6 +124,7 @@ class WorksheetGenerator:
         self.problems = []
 
     def generate_problems(self):
+        """Generate n unique problems for the worksheet."""
         self.problems.clear()
         recent = []
         max_recent = 10
@@ -116,11 +139,13 @@ class WorksheetGenerator:
                         recent.pop(0)
                     break
             else:
+                # Fallback if all recent pairs are exhausted
                 a = random.randint(*self.term1_range)
                 b = random.randint(*self.term2_range)
                 self.problems.append(self.problem_cls(a, b))
 
     def create_pdf(self):
+        """Create the worksheet PDF with problems and answer key."""
         c = canvas.Canvas(self.output_file, pagesize=letter)
         w, h = letter
         self._draw_problem_pages(c, w, h)
@@ -128,11 +153,13 @@ class WorksheetGenerator:
         c.save()
 
     def _grid(self):
+        """Return (cols, rows) for the worksheet grid layout."""
         if self.problem_cls in (MissingFactorProblem, FractionComparisonProblem):
             return 5, 10
         return 10, 5
 
     def _draw_problem_pages(self, c, width, height):
+        """Draw the problems in a grid layout on the PDF."""
         cols, rows = self._grid()
         margin = 0.5 * inch
         usable_w = width - 2 * margin
@@ -157,6 +184,7 @@ class WorksheetGenerator:
 
     @staticmethod
     def _draw_single(c, problem, x, y):
+        """Draw a single problem at (x, y) on the PDF canvas."""
         lines = problem.format_problem()
         lh = 16
         c.setFont("Helvetica", 14)
@@ -166,6 +194,7 @@ class WorksheetGenerator:
             c.drawString(line_x, y - i * lh, L)
 
     def _draw_answer_key(self, c, width, height):
+        """Draw the answer key on a new PDF page."""
         c.showPage()
         c.setFont("Helvetica-Bold", 16)
         c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
@@ -181,6 +210,7 @@ class WorksheetGenerator:
             c.drawString(x, y, f"{i+1}. {p.get_answer()}")
 
 class MixedWorksheetGenerator:
+    """Generates a worksheet PDF with multiple problem types, each in its own section."""
     SECTION_LABELS = {
         MultiplicationProblem: "Multiplication",
         AdditionProblem: "Addition",
@@ -190,11 +220,17 @@ class MixedWorksheetGenerator:
         FractionComparisonProblem: "Fraction Comparison",
     }
     def __init__(self, problems_by_type, output_file):
-        self.problems_by_type = problems_by_type  # List of (problem_cls, problems)
+        """
+        Args:
+            problems_by_type: List of (problem_cls, problems) pairs
+            output_file: Path to output PDF
+        """
+        self.problems_by_type = problems_by_type
         self.output_file = output_file
         self.all_problems = [p for _, plist in problems_by_type for p in plist]
 
     def create_pdf(self):
+        """Create the mixed worksheet PDF with sections and answer key."""
         c = canvas.Canvas(self.output_file, pagesize=letter)
         w, h = letter
         groups = [(cls, plist) for cls, plist in self.problems_by_type if plist]
@@ -251,6 +287,7 @@ class MixedWorksheetGenerator:
         c.save()
 
     def _draw_answer_key(self, c, width, height):
+        """Draw the answer key for all problems on a new PDF page."""
         c.showPage()
         c.setFont("Helvetica-Bold", 16)
         c.drawString(0.5 * inch, height - 0.5 * inch, "Answer Key")
@@ -269,6 +306,7 @@ class MixedWorksheetGenerator:
 # Helpers
 # -----------------------------------------------------------------------------
 def parse_range(txt):
+    """Parse a string like '2..12' into a tuple (2, 12)."""
     try:
         a, b = map(int, txt.split(".."))
         if a > b:
@@ -278,6 +316,7 @@ def parse_range(txt):
         raise ValueError("Range must be 'min..max' with min ≤ max")
 
 def make_problems(cls, n, term1_range, term2_range):
+    """Generate a list of n unique problems for the given class and ranges."""
     recent = []
     max_recent = 10
     plist = []

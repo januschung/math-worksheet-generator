@@ -1,3 +1,8 @@
+"""
+main.py
+-------
+FastAPI web API for generating math worksheet PDFs. Exposes endpoints for worksheet generation, serving PDFs, and providing default problem ranges. Also serves a modern web UI for interactive worksheet creation.
+"""
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,7 +29,7 @@ PROBLEM_CLASS_MAP = {
 
 
 def parse_range(txt: str):
-    """Parse "min..max" → (min, max)."""
+    """Parse 'min..max' as (min, max) or raise HTTPException on error."""
     try:
         return worksheet_core.parse_range(txt)
     except ValueError:
@@ -32,7 +37,7 @@ def parse_range(txt: str):
 
 
 def clean_old_files(limit: int = 50):
-    """Prevent unbounded storage growth (delete oldest PDFs)."""
+    """Delete oldest PDFs to prevent unbounded storage growth."""
     pdfs = sorted(OUTPUT_DIR.glob("*.pdf"), key=lambda p: p.stat().st_mtime)
     for p in pdfs[:-limit]:
         p.unlink(missing_ok=True)
@@ -43,18 +48,20 @@ def clean_old_files(limit: int = 50):
 
 @app.post("/generate")
 async def generate_worksheet(payload: dict):
-    """Create a worksheet PDF and return its URL.
-
-    Expected body:
-    {
-      "problem_types": ["multiplication", ...],
-      "n": 100,
-      "term1": "2..12",          # optional, single‑type only
-      "term2": "2..12",          # optional, single‑type only
-      "defaults": {               # optional per‑type overrides
-        "multiplication": {"term1": "3..12", "term2": "2..15"}
+    """
+    Create a worksheet PDF and return its URL.
+    Request body:
+      {
+        "problem_types": ["multiplication", ...],
+        "n": 100,
+        "term1": "2..12",          # optional, single-type only
+        "term2": "2..12",          # optional, single-type only
+        "defaults": {               # optional per-type overrides
+          "multiplication": {"term1": "3..12", "term2": "2..15"}
+        }
       }
-    }
+    Response:
+      {"url": "/pdf/worksheet_xxx.pdf"}
     """
     types = payload.get("problem_types")
     if not types or not isinstance(types, list):
@@ -74,7 +81,7 @@ async def generate_worksheet(payload: dict):
     if n <= 0:
         raise HTTPException(status_code=400, detail="'n' must be positive")
 
-    # ---------- Per‑request default overrides ----------
+    # Parse per-type default overrides
     overrides_raw = payload.get("defaults", {})
     per_type_ranges = {}
     for name, rng in overrides_raw.items():
@@ -92,6 +99,7 @@ async def generate_worksheet(payload: dict):
     out_path = OUTPUT_DIR / f"worksheet_{file_id}.pdf"
 
     if len(classes) == 1:
+        # Single-type worksheet (optionally supports term1/term2)
         cls = classes[0]
         term1_txt = payload.get("term1")
         term2_txt = payload.get("term2")
@@ -108,6 +116,7 @@ async def generate_worksheet(payload: dict):
         gen.generate_problems()
         gen.create_pdf()
     else:
+        # Multi-type worksheet (no term1/term2 allowed, only per-type defaults)
         if payload.get("term1") or payload.get("term2"):
             raise HTTPException(status_code=400, detail="term1/term2 not allowed with multiple types")
         problems_by_type = []
@@ -127,6 +136,7 @@ async def generate_worksheet(payload: dict):
 
 @app.get("/pdf/{filename}")
 async def serve_pdf(filename: str):
+    """Serve a generated PDF for inline display or download."""
     path = OUTPUT_DIR / filename
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
@@ -135,8 +145,12 @@ async def serve_pdf(filename: str):
     return FileResponse(path, media_type="application/pdf", headers=headers)
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def index():
+    """
+    Serve the interactive web UI for worksheet generation and preview.
+    The UI fetches /defaults to prepopulate term ranges and provides a modern, user-friendly experience.
+    """
     html = """
     <!doctype html>
     <html lang='en'>
@@ -302,6 +316,7 @@ async def index():
 
 @app.get("/defaults")
 async def get_defaults():
+    """Return the default term1/term2 ranges for each problem type as a JSON object."""
     return {
         name: {
             "term1": f"{rng[0][0]}..{rng[0][1]}",
