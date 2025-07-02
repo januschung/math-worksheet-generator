@@ -90,6 +90,54 @@ print(r.json())  # {"url": "/pdf/worksheet_xxx.pdf"}
 - There is no CLI interface; all usage is via the web UI or API.
 - All worksheet generation is stateless and per-request.
 
+## Deployment
+
+### Recommended: Docker Compose
+
+For LAN or production use, deploy with Docker Compose for easy management, automatic restarts, and persistent storage.
+
+1. **Build and start the app:**
+   ```bash
+   docker compose up -d
+   ```
+   This will build the image and start the service in the background.
+
+2. **Access the app:**
+   - Open [http://localhost:8000](http://localhost:8000) or use your server's IP on your LAN.
+
+3. **Persist generated worksheets:**
+   - The `generated/` directory is mapped to a Docker volume and will persist across restarts and upgrades.
+
+4. **Stop the app:**
+   ```bash
+   docker compose down
+   ```
+
+5. **Restart the app:**
+   ```bash
+   docker compose up -d
+   ```
+
+6. **Update the app:**
+   - Pull the latest code, then rebuild:
+     ```bash
+     git pull
+     docker compose build
+     docker compose up -d
+     ```
+
+7. **Automatic restart:**
+   - The service uses `restart: unless-stopped` and will automatically restart after a server reboot or crash.
+
+### Alternative: Quick Test with Docker Run
+For quick, one-off tests (not recommended for production):
+```bash
+docker run --rm -p 8000:8000 \
+  -v $(pwd):/app -w /app python:3.12-slim \
+  sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0"
+```
+- This does not persist generated files or restart automatically.
+
 ---
 
 For more details, see the code and docstrings in `main.py` and `worksheet_core.py`.

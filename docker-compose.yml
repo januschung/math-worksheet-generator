@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  worksheet:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - generated:/app/generated
+    restart: unless-stopped
+volumes:
+  generated: 
