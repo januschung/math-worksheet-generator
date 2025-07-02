@@ -210,7 +210,13 @@ class WorksheetGenerator:
             c.drawString(x, y, f"{i+1}. {p.get_answer()}")
 
 class MixedWorksheetGenerator:
-    """Generates a worksheet PDF with multiple problem types, each in its own section."""
+    """Generates a worksheet PDF with multiple problem types, each in its own section.
+
+    The ``chunk_size`` parameter controls how many problems from each type are
+    shown together. The default of 25 matches the previous behaviour where two
+    types are displayed on a single page (25 problems each). Larger ``chunk_size``
+    values will dedicate a full page to the chunk.
+    """
     SECTION_LABELS = {
         MultiplicationProblem: "Multiplication",
         AdditionProblem: "Addition",
@@ -219,7 +225,7 @@ class MixedWorksheetGenerator:
         MissingFactorProblem: "Missing Factor",
         FractionComparisonProblem: "Fraction Comparison",
     }
-    def __init__(self, problems_by_type, output_file):
+    def __init__(self, problems_by_type, output_file, chunk_size=25):
         """
         Args:
             problems_by_type: List of (problem_cls, problems) pairs
@@ -227,6 +233,7 @@ class MixedWorksheetGenerator:
         """
         self.problems_by_type = problems_by_type
         self.output_file = output_file
+        self.chunk_size = chunk_size
         self.all_problems = [p for _, plist in problems_by_type for p in plist]
 
     def create_pdf(self):
@@ -236,35 +243,81 @@ class MixedWorksheetGenerator:
         groups = [(cls, plist) for cls, plist in self.problems_by_type if plist]
         chunked = []
         for cls, plist in groups:
-            chunks = [plist[i : i + 25] for i in range(0, len(plist), 25)]
+            chunks = [
+                plist[i : i + self.chunk_size]
+                for i in range(0, len(plist), self.chunk_size)
+            ]
             chunked.append((cls, chunks))
         header_height = 22
         margin = 0.5 * inch
         usable_w = w - 2 * margin
         usable_h = h - 2 * margin
-        cols, rows = 5, 5
-        col_w = usable_w / cols
-        row_h = (usable_h / 2 - header_height) / rows
         page_idx = 0
-        chunk_idx = 0
-        while True:
-            rendered = False
-            for pair_i in range(0, len(chunked), 2):
-                top = chunked[pair_i]
-                bottom = chunked[pair_i + 1] if pair_i + 1 < len(chunked) else None
-                top_ok = chunk_idx < len(top[1])
-                bottom_ok = bottom and chunk_idx < len(bottom[1])
-                if not (top_ok or bottom_ok):
-                    continue
-                if page_idx or rendered:
-                    c.showPage()
-                for idx, group in enumerate([top, bottom]):
-                    if not group or chunk_idx >= len(group[1]):
+
+        if self.chunk_size <= 25:
+            # Half-page layout: two sections per page
+            cols, rows = 5, 5
+            col_w = usable_w / cols
+            row_h = (usable_h / 2 - header_height) / rows
+            chunk_idx = 0
+            while True:
+                rendered = False
+                for pair_i in range(0, len(chunked), 2):
+                    top = chunked[pair_i]
+                    bottom = chunked[pair_i + 1] if pair_i + 1 < len(chunked) else None
+                    top_ok = chunk_idx < len(top[1])
+                    bottom_ok = bottom and chunk_idx < len(bottom[1])
+                    if not (top_ok or bottom_ok):
                         continue
-                    cls, chunks = group
-                    problems = chunks[chunk_idx]
-                    y_off = 0 if idx == 0 else -(usable_h / 2)
-                    header_y = h - margin + y_off - 2
+                    if page_idx or rendered:
+                        c.showPage()
+                    for idx, group in enumerate([top, bottom]):
+                        if not group or chunk_idx >= len(group[1]):
+                            continue
+                        cls, chunks = group
+                        problems = chunks[chunk_idx]
+                        y_off = 0 if idx == 0 else -(usable_h / 2)
+                        header_y = h - margin + y_off - 2
+                        c.setFont("Helvetica-Bold", 13)
+                        label = self.SECTION_LABELS.get(cls, str(cls.__name__))
+                        c.drawCentredString(w / 2, header_y, label)
+                        c.setLineWidth(0.5)
+                        c.line(margin, header_y - 5, w - margin, header_y - 5)
+                        for i, p in enumerate(problems):
+                            col = i % cols
+                            row = i // cols
+                            x = margin + col * col_w + 0.05 * col_w
+                            y = (
+                                h
+                                - margin
+                                - row * row_h
+                                - 0.15 * row_h
+                                + y_off
+                                - header_height
+                            )
+                            WorksheetGenerator._draw_single(c, p, x, y)
+                    page_idx += 1
+                    rendered = True
+                if not rendered:
+                    break
+                chunk_idx += 1
+        else:
+            # Full-page layout: one section per page
+            for cls, chunks in chunked:
+                # Determine grid based on problem type
+                if cls in (
+                    MissingFactorProblem,
+                    FractionComparisonProblem,
+                ):
+                    cols, rows = 5, 10
+                else:
+                    cols, rows = 10, 5
+                col_w = usable_w / cols
+                row_h = (usable_h - header_height) / rows
+                for problems in chunks:
+                    if page_idx:
+                        c.showPage()
+                    header_y = h - margin - 2
                     c.setFont("Helvetica-Bold", 13)
                     label = self.SECTION_LABELS.get(cls, str(cls.__name__))
                     c.drawCentredString(w / 2, header_y, label)
@@ -275,14 +328,10 @@ class MixedWorksheetGenerator:
                         row = i // cols
                         x = margin + col * col_w + 0.05 * col_w
                         y = (
-                            h - margin - row * row_h - 0.15 * row_h + y_off - header_height
+                            h - margin - row * row_h - 0.15 * row_h - header_height
                         )
                         WorksheetGenerator._draw_single(c, p, x, y)
-                page_idx += 1
-                rendered = True
-            if not rendered:
-                break
-            chunk_idx += 1
+                    page_idx += 1
         self._draw_answer_key(c, w, h)
         c.save()
 

@@ -81,6 +81,13 @@ async def generate_worksheet(payload: dict):
     if n <= 0:
         raise HTTPException(status_code=400, detail="'n' must be positive")
 
+    try:
+        chunk = int(payload.get("chunk", 25))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="'chunk' must be an integer")
+    if chunk <= 0 or chunk > 50:
+        raise HTTPException(status_code=400, detail="'chunk' must be between 1 and 50")
+
     # Parse per-type default overrides
     overrides_raw = payload.get("defaults", {})
     per_type_ranges = {}
@@ -127,7 +134,7 @@ async def generate_worksheet(payload: dict):
                 t1, t2 = worksheet_core.PROBLEM_DEFAULTS[cls]
             plist = worksheet_core.make_problems(cls, n, t1, t2)
             problems_by_type.append((cls, plist))
-        gen = worksheet_core.MixedWorksheetGenerator(problems_by_type, str(out_path))
+        gen = worksheet_core.MixedWorksheetGenerator(problems_by_type, str(out_path), chunk_size=chunk)
         gen.create_pdf()
 
     clean_old_files()
@@ -226,6 +233,7 @@ async def index():
         </fieldset>
 
         <label>Problems per type: <input type='number' name='n' id='n' value='100' min='1'></label>
+        <label>Problems per section: <input type='number' name='chunk' id='chunk' value='25' min='1' max='50'></label>
         <button type='submit'>Generate</button>
       </form>
 
@@ -275,6 +283,8 @@ async def index():
     const problem_types = checked.map(cb => cb.value);
     const n = parseInt(document.getElementById('n').value, 10) || 0;
     if(n <= 0){ alert('N must be positive'); return; }
+    const chunk = parseInt(document.getElementById('chunk').value, 10) || 0;
+    if(chunk <= 0 || chunk > 50){ alert('Chunk must be 1-50'); return; }
     const defaultsPayload = {};
     for(const t of problem_types){
       const t1 = document.getElementById(`${t}_term1`).value.trim();
@@ -287,7 +297,7 @@ async def index():
         defaultsPayload[t] = {term1:t1, term2:t2};
       }
     }
-    const payload = {problem_types, n};
+    const payload = {problem_types, n, chunk};
     if(Object.keys(defaultsPayload).length) payload.defaults = defaultsPayload;
     try{
       const res = await fetch('/generate', {

@@ -29,6 +29,7 @@ A modern, web-based Python app for generating customizable math worksheet PDFs. 
 - Select one or more problem types.
 - Optionally adjust the term ranges (defaults are shown and can be reset).
 - Set the number of problems per type.
+- Choose how many problems appear in each section (defaults to 25).
 - Click **Generate** to preview and download the worksheet PDF.
 
 ## API Endpoints
@@ -39,6 +40,7 @@ Generate a worksheet PDF.
   {
     "problem_types": ["multiplication", "addition"],
     "n": 100,
+    "chunk": 25,
     "term1": "2..12",      // optional, single-type only
     "term2": "2..12",      // optional, single-type only
     "defaults": {           // optional per-type overrides
@@ -79,6 +81,7 @@ import requests
 payload = {
     "problem_types": ["multiplication"],
     "n": 50,
+    "chunk": 25,
     "term1": "2..12",
     "term2": "2..12"
 }
