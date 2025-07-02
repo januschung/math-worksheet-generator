@@ -28,6 +28,16 @@ A modern, web-based Python app for generating customizable math worksheet PDFs. 
 ## Web UI Usage
 - Select one or more problem types.
 - Optionally adjust the term ranges (defaults are shown and can be reset).
+- Ranges use the `min..max` format (e.g. `3..12`).
+  Term1 is the first number for the chosen type and term2 is the second
+  (for division that means divisor and quotient).
+- Examples with default limits:
+  - Multiplication: `3 × 19`
+  - Addition: `50 + 99`
+  - Subtraction: `99 - 10`
+  - Division: `24 ÷ 2`
+  - Missing Factor: `2 × __ = 40`
+  - Fraction Compare: `1/2 ? 1/12`
 - Set the number of problems per type.
 - Choose how many problems appear in each section (defaults to 25).
 - Click **Generate** to preview and download the worksheet PDF.

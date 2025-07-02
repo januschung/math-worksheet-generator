@@ -175,6 +175,9 @@ async def index():
         .default-hint{color:#888;font-size:0.95em;margin-left:0.5em}
         .reset-btn{margin-left:0.5em;font-size:0.9em;padding:0.1em 0.5em;border-radius:4px;border:1px solid #ccc;background:#f3f3f3;cursor:pointer}
         .reset-btn:disabled{color:#aaa;border-color:#eee;background:#fafafa;cursor:default}
+        .range-help{margin:0.3rem 0 0.8rem;color:#555;font-size:0.95em}
+        .desc{color:#555;font-size:0.9em;margin-left:0.5em}
+        .example{color:#777;font-size:0.9em;margin-left:0.5em;font-style:italic}
         input[type=number]{width:80px}
         button[type=submit]{margin-left:0.5rem;padding:0.4em 1.2em;font-size:1.1em;border-radius:6px;border:1px solid #888;background:#4a90e2;color:#fff;cursor:pointer}
         button[type=submit]:hover{background:#357ab8}
@@ -187,6 +190,7 @@ async def index():
       <form id='cfg'>
         <fieldset>
           <legend>Problem Types &amp; Optional Term Ranges</legend>
+          <p class="range-help">Ranges use <code>min..max</code> format (e.g. <code>3..12</code>). Term1 is the first number and term2 the second — for division that's divisor and quotient.</p>
 
           <div class='row' data-type='multiplication'>
             <label><input type='checkbox' name='ptype' value='multiplication'>Multiplication</label>
@@ -194,6 +198,8 @@ async def index():
             term2 <input type='text' id='multiplication_term2'>
             <span class="default-hint" id="multiplication_hint"></span>
             <button type="button" class="reset-btn" id="multiplication_reset">Reset</button>
+            <span class="desc">term1 × term2</span>
+            <span class="example" id="multiplication_example"></span>
           </div>
           <div class='row' data-type='addition'>
             <label><input type='checkbox' name='ptype' value='addition'>Addition</label>
@@ -201,6 +207,8 @@ async def index():
             term2 <input type='text' id='addition_term2'>
             <span class="default-hint" id="addition_hint"></span>
             <button type="button" class="reset-btn" id="addition_reset">Reset</button>
+            <span class="desc">term1 + term2</span>
+            <span class="example" id="addition_example"></span>
           </div>
           <div class='row' data-type='subtraction'>
             <label><input type='checkbox' name='ptype' value='subtraction'>Subtraction</label>
@@ -208,6 +216,8 @@ async def index():
             term2 <input type='text' id='subtraction_term2'>
             <span class="default-hint" id="subtraction_hint"></span>
             <button type="button" class="reset-btn" id="subtraction_reset">Reset</button>
+            <span class="desc">term1 - term2</span>
+            <span class="example" id="subtraction_example"></span>
           </div>
           <div class='row' data-type='division'>
             <label><input type='checkbox' name='ptype' value='division'>Division</label>
@@ -215,6 +225,8 @@ async def index():
             term2 <input type='text' id='division_term2'>
             <span class="default-hint" id="division_hint"></span>
             <button type="button" class="reset-btn" id="division_reset">Reset</button>
+            <span class="desc">term1 = divisor, term2 = quotient</span>
+            <span class="example" id="division_example"></span>
           </div>
           <div class='row' data-type='missingfactor'>
             <label><input type='checkbox' name='ptype' value='missingfactor'>Missing&nbsp;Factor</label>
@@ -222,6 +234,8 @@ async def index():
             term2 <input type='text' id='missingfactor_term2'>
             <span class="default-hint" id="missingfactor_hint"></span>
             <button type="button" class="reset-btn" id="missingfactor_reset">Reset</button>
+            <span class="desc">term1 × term2 with one blank</span>
+            <span class="example" id="missingfactor_example"></span>
           </div>
           <div class='row' data-type='fractioncompare'>
             <label><input type='checkbox' name='ptype' value='fractioncompare'>Fraction&nbsp;Compare</label>
@@ -229,6 +243,8 @@ async def index():
             term2 <input type='text' id='fractioncompare_term2'>
             <span class="default-hint" id="fractioncompare_hint"></span>
             <button type="button" class="reset-btn" id="fractioncompare_reset">Reset</button>
+            <span class="desc">denominators term1 vs term2</span>
+            <span class="example" id="fractioncompare_example"></span>
           </div>
         </fieldset>
 
@@ -247,12 +263,44 @@ async def index():
   const defaults = await fetch('/defaults').then(r => r.json());
   const types = Object.keys(defaults);
 
+  function parseRange(txt){
+    const [a,b] = txt.split('..').map(Number);
+    return [a,b];
+  }
+
+  function exampleFor(type, r1, r2){
+    const [a1,a2] = parseRange(r1);
+    const [b1,b2] = parseRange(r2);
+    switch(type){
+      case 'multiplication':
+        return `${a1} × ${b2}`;
+      case 'addition':
+        return `${a1} + ${b2}`;
+      case 'subtraction':
+        return `${a2} - ${b1}`;
+      case 'division':
+        return `${a1*b2} ÷ ${a1}`;
+      case 'missingfactor':
+        return `${a1} × __ = ${a1*b2}`;
+      case 'fractioncompare':
+        return `1/${a1} ? 1/${b2}`;
+      default:
+        return '';
+    }
+  }
+
   // Prepopulate and set up UI for each type
   for(const t of types){
     const t1 = document.getElementById(`${t}_term1`);
     const t2 = document.getElementById(`${t}_term2`);
     const hint = document.getElementById(`${t}_hint`);
     const reset = document.getElementById(`${t}_reset`);
+    const ex = document.getElementById(`${t}_example`);
+    const update = () => {
+      try{
+        ex.textContent = 'e.g. ' + exampleFor(t, t1.value, t2.value);
+      }catch{ ex.textContent = ''; }
+    };
     t1.value = defaults[t].term1;
     t2.value = defaults[t].term2;
     t1.placeholder = defaults[t].term1;
@@ -264,7 +312,11 @@ async def index():
     reset.addEventListener('click', () => {
       t1.value = defaults[t].term1;
       t2.value = defaults[t].term2;
+      update();
     });
+    t1.addEventListener('input', update);
+    t2.addEventListener('input', update);
+    update();
     // Enable/disable term fields based on checkbox
     const cb = document.querySelector(`input[name='ptype'][value='${t}']`);
     cb.addEventListener('change', () => {
@@ -272,6 +324,7 @@ async def index():
       if(!cb.checked){
         t1.value = defaults[t].term1;
         t2.value = defaults[t].term2;
+        update();
       }
     });
   }
