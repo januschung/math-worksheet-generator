@@ -259,48 +259,45 @@ class MixedWorksheetGenerator:
             cols, rows = 5, 5
             col_w = usable_w / cols
             row_h = (usable_h / 2 - header_height) / rows
-            chunk_idx = 0
-            while True:
-                rendered = False
-                for pair_i in range(0, len(chunked), 2):
-                    top = chunked[pair_i]
-                    bottom = chunked[pair_i + 1] if pair_i + 1 < len(chunked) else None
-                    top_ok = chunk_idx < len(top[1])
-                    bottom_ok = bottom and chunk_idx < len(bottom[1])
-                    if not (top_ok or bottom_ok):
+
+            # Build flat list of sections in display order
+            sections = []
+            max_chunks = max(len(chunks) for _, chunks in chunked)
+            for i in range(max_chunks):
+                for cls, chunks in chunked:
+                    if i < len(chunks):
+                        sections.append((cls, chunks[i]))
+
+            for pair_i in range(0, len(sections), 2):
+                top = sections[pair_i]
+                bottom = sections[pair_i + 1] if pair_i + 1 < len(sections) else None
+                if pair_i:
+                    c.showPage()
+                for idx, section in enumerate([top, bottom]):
+                    if not section:
                         continue
-                    if page_idx or rendered:
-                        c.showPage()
-                    for idx, group in enumerate([top, bottom]):
-                        if not group or chunk_idx >= len(group[1]):
-                            continue
-                        cls, chunks = group
-                        problems = chunks[chunk_idx]
-                        y_off = 0 if idx == 0 else -(usable_h / 2)
-                        header_y = h - margin + y_off - 2
-                        c.setFont("Helvetica-Bold", 13)
-                        label = self.SECTION_LABELS.get(cls, str(cls.__name__))
-                        c.drawCentredString(w / 2, header_y, label)
-                        c.setLineWidth(0.5)
-                        c.line(margin, header_y - 5, w - margin, header_y - 5)
-                        for i, p in enumerate(problems):
-                            col = i % cols
-                            row = i // cols
-                            x = margin + col * col_w + 0.05 * col_w
-                            y = (
-                                h
-                                - margin
-                                - row * row_h
-                                - 0.15 * row_h
-                                + y_off
-                                - header_height
-                            )
-                            WorksheetGenerator._draw_single(c, p, x, y)
-                    page_idx += 1
-                    rendered = True
-                if not rendered:
-                    break
-                chunk_idx += 1
+                    cls, problems = section
+                    y_off = 0 if idx == 0 else -(usable_h / 2)
+                    header_y = h - margin + y_off - 2
+                    c.setFont("Helvetica-Bold", 13)
+                    label = self.SECTION_LABELS.get(cls, str(cls.__name__))
+                    c.drawCentredString(w / 2, header_y, label)
+                    c.setLineWidth(0.5)
+                    c.line(margin, header_y - 5, w - margin, header_y - 5)
+                    for i, p in enumerate(problems):
+                        col = i % cols
+                        row = i // cols
+                        x = margin + col * col_w + 0.05 * col_w
+                        y = (
+                            h
+                            - margin
+                            - row * row_h
+                            - 0.15 * row_h
+                            + y_off
+                            - header_height
+                        )
+                        WorksheetGenerator._draw_single(c, p, x, y)
+                page_idx += 1
         else:
             # Full-page layout: one section per page
             for cls, chunks in chunked:
