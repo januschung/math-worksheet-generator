@@ -1,97 +1,158 @@
-# Math Worksheet Generator
+# Math Worksheet Generator (Web Edition)
 
-![sample worksheet](sample.png)
-![sample answer sheet](sample-answer.png)
+A modern, web-based Python app for generating customizable math worksheet PDFs. Supports multiple problem types, per-type term ranges, and a user-friendly web UI. Built with FastAPI and ReportLab.
 
-## Background
-My best friend tests his 5 year old basic math questions from store-bought material which is good for one time use (his son memorizes the answers) …. but he wants to give him more practice.
-
-Two solutions:
-1. keep buying more one time usage materials (less beer budget); or
-2. make question sets with the number pairs and calculate the answer for each question manually (less beer time)
-
-Not ideal.
-
-That's the reason for me to look into an automate way to get the job done.
-
-## Benefit of the Math Worksheet Generator
-With the Math Worksheet Generator, you can create a PDF with unique questions, as needed, in a fraction of second.
-
-There are five choices:
-1. Addition
-2. Subtraction
-3. Multiplication
-4. Division
-5. Mixed
+## Features
+- Generate printable math worksheets as PDFs
+- Supports multiplication, addition, subtraction, division, missing factor, and fraction comparison
+- Per-type term range customization (e.g., 2..12)
+- Modern, interactive web UI (no CLI required)
+- REST API for programmatic access
+- Inline PDF preview and download
 
 ## Requirements
-[python3.11](https://www.python.org/downloads/)
+- Python 3.8+
+- `reportlab` and `fastapi` (see `requirements.txt`)
 
-Install required package with the following command:
+## Quick Start
+1. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Run the web app:
+   ```bash
+   python main.py
+   ```
+3. Open your browser to [http://localhost:8000](http://localhost:8000)
+
+## Web UI Usage
+- Select one or more problem types.
+- Optionally adjust the term ranges (defaults are shown and can be reset).
+- Ranges use the `min..max` format (e.g. `3..12`).
+  Term1 is the first number and term2 is the second.
+  For division term1 sets the divisor and term2 the quotient (the dividend
+  is their product). Fraction comparison uses them as the denominators of
+  the two fractions.
+- Examples with default limits:
+  - Multiplication: `3 × 19`
+  - Addition: `50 + 99`
+  - Subtraction: `99 - 10`
+  - Division: `24 ÷ 2`
+  - Missing Factor: `2 × __ = 40`
+  - Fraction Compare: `1/2 ? 1/12`
+- Set the number of problems per type.
+- Choose how many problems appear in each section (defaults to 25).
+- Click **Generate** to preview and download the worksheet PDF.
+
+## API Endpoints
+### `POST /generate`
+Generate a worksheet PDF.
+- **Request JSON:**
+  ```json
+  {
+    "problem_types": ["multiplication", "addition"],
+    "n": 100,
+    "chunk": 25,
+    "term1": "2..12",      // optional, single-type only
+    "term2": "2..12",      // optional, single-type only
+    "defaults": {           // optional per-type overrides
+      "multiplication": {"term1": "3..12", "term2": "2..15"}
+    }
+  }
+  ```
+- **Response:** `{ "url": "/pdf/worksheet_xxx.pdf" }`
+
+### `GET /pdf/{filename}`
+Serve a generated PDF for inline display or download.
+
+### `GET /defaults`
+Return the default term1/term2 ranges for each problem type as a JSON object:
+```json
+{
+  "multiplication": {"term1": "3..12", "term2": "2..19"},
+  "addition": {"term1": "50..300", "term2": "10..99"},
+  ...
+}
 ```
-pip install -r requirements.txt
+
+## Customizing Problem Types and Ranges
+- The web UI fetches `/defaults` and prepopulates the term range fields.
+- You can edit the ranges before generating a worksheet.
+- To change the built-in defaults, edit `PROBLEM_DEFAULTS` in `worksheet_core.py`.
+
+## Extending the Core Logic
+- All worksheet logic is in `worksheet_core.py`.
+- To add a new problem type:
+  1. Create a new class inheriting from `MathProblem`.
+  2. Add it to `PROBLEM_DEFAULTS` and `PROBLEM_CLASS_MAP` in `main.py`.
+  3. Update the web UI HTML if you want it selectable.
+
+## Example: Programmatic API Usage
+```python
+import requests
+payload = {
+    "problem_types": ["multiplication"],
+    "n": 50,
+    "chunk": 25,
+    "term1": "2..12",
+    "term2": "2..12"
+}
+r = requests.post("http://localhost:8000/generate", json=payload)
+print(r.json())  # {"url": "/pdf/worksheet_xxx.pdf"}
 ```
 
-## How to Use
-1. Generate the worksheet in pdf format with the following command:
+## Notes
+- There is no CLI interface; all usage is via the web UI or API.
+- All worksheet generation is stateless and per-request.
+
+## Deployment
+
+### Recommended: Docker Compose
+
+For LAN or production use, deploy with Docker Compose for easy management, automatic restarts, and persistent storage.
+
+1. **Build and start the app:**
+   ```bash
+   docker compose up -d
+   ```
+   This will build the image and start the service in the background.
+
+2. **Access the app:**
+   - Open [http://localhost:8000](http://localhost:8000) or use your server's IP on your LAN.
+
+3. **Persist generated worksheets:**
+   - The `generated/` directory is mapped to a Docker volume and will persist across restarts and upgrades.
+
+4. **Stop the app:**
+   ```bash
+   docker compose down
+   ```
+
+5. **Restart the app:**
+   ```bash
+   docker compose up -d
+   ```
+
+6. **Update the app:**
+   - Pull the latest code, then rebuild:
+     ```bash
+     git pull
+     docker compose build
+     docker compose up -d
+     ```
+
+7. **Automatic restart:**
+   - The service uses `restart: unless-stopped` and will automatically restart after a server reboot or crash.
+
+### Alternative: Quick Test with Docker Run
+For quick, one-off tests (not recommended for production):
+```bash
+docker run --rm -p 8000:8000 \
+  -v $(pwd):/app -w /app python:3.12-slim \
+  sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0"
 ```
-python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf]
-```
-2. Print out the generated file `worksheet.pdf`
+- This does not persist generated files or restart automatically.
 
-For addition only worksheet:
-```
-python3 run.py --type +
-```
-For calculation up to 3 digits range:
-```
-python3 run.py --digits 3
-```
-For generating different number of question, eg. 100 (default is 80):
-```
-python3 run.py -q 100
-```
-or
-```
-python3 run.py --question_count 100
-```
-For custom output filename (default is worksheet.pdf):
-```
-python3 run.py --output custom-name.pdf
-```
+---
 
-## Sample
-[sample worksheet](sample-worksheet.pdf)
-
-## Code Overview
-Everything is written in python in `run.py`. You can play with the font and grid size with the variables under the `# Basic settings` section.
-
-## Contributing
-I appreciate all suggestions or PRs which will help kids learn math better. Feel free to fork the project and create a pull request with your idea.
-
-## TODO
-1. Add date/name/score section to the front page
-
-## Special Thanks
-My long time friend San for the inspiration of this project and lovely sons Tim and Hin. Thanks [thedanimal](https://github.com/thedanimal) for reviewing this README and adding new features.
-
-Also, thank you for the love and support form the [Reddit Python community](https://www.reddit.com/r/Python/comments/ja5y2m/made_this_tool_with_python_and_my_son_now_hates_me/). You guys are amazing and are helping me to make this project better.
-
-## Successful Story
-Thanks [k1m0ch1](https://github.com/k1m0ch1) for sharing this heartwarming story:
->...I made this card for my kid, and then the teacher asks me if I can make some for the kids, well its generated anyway and very helpful, and the next day he asks me to make for a whole class, and next day he wants me to make for a whole school, and a weeks later other schools want me to help to make for a whole school.    
-    more than 1000 generated file, with a custom filename for every kid and sent to the email
-    I'm doing it for free, while you made this free, love it <3
-
-## Links
-Thank you for your coverage. 
-
-[PyCoder's Weekly Issue #442](https://pycoders.com/issues/442)
-
-[PyCoder's Weekly Twitter](https://twitter.com/pycoders/status/1316379986417381376)
-
-[Real Python Facebook](https://www.facebook.com/LearnRealPython/posts/1688239528018053?__tn__=-R)
-
-[Github Trends Telegram](https://t.me/githubtrending/9007)
-
-[Python Trending Twitter](https://twitter.com/pythontrending/status/1316659466935373826)
+For more details, see the code and docstrings in `main.py` and `worksheet_core.py`.

@@ -1,1 +1,3 @@
-fpdf2==2.7.4
+fastapi
+uvicorn[standard]
+reportlab
