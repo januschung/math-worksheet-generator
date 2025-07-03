@@ -36,20 +36,6 @@ class MathWorksheetGenerator:
 
     # From https://stackoverflow.com/questions/6800193/what-is-the-most-efficient-way-of-finding-all-the-factors-of-a
     # -number-in-python
-    def factors(self, n: int):
-        return set(reduce(list.__add__,
-                          ([i, n//i] for i in range(1, int(n**0.5) + 1) if n % i == 0)))
-
-    def division_helper(self, num) -> [int, int, int]:
-        # prevent num = 0 or divisor = 1 or divisor = dividend
-        factor = 1
-        while not num or factor == 1 or factor == num:
-            num = random.randint(0, self.max_number)
-        # pick a factor of num; answer will always be an integer
-            if num:
-                factor = random.sample(list(self.factors(num)), 1)[0]
-        answer = int(num / factor)
-        return [num, factor, answer]
 
     def generate_question(self) -> QuestionInfo:
         """Generates each question and calculate the answer depending on the type_ in a list
