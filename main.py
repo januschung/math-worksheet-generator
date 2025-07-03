@@ -190,7 +190,7 @@ async def index():
       <form id='cfg'>
         <fieldset>
           <legend>Problem Types &amp; Optional Term Ranges</legend>
-          <p class="range-help">Ranges use <code>min..max</code> format (e.g. <code>3..12</code>). Term1 is the first number and term2 the second — for division that's divisor and quotient.</p>
+          <p class="range-help">Ranges use <code>min..max</code> format (e.g. <code>3..12</code>). Term1 is the first number and term2 the second. For division they set the divisor and quotient. Fraction comparison uses them as denominators.</p>
 
           <div class='row' data-type='multiplication'>
             <label><input type='checkbox' name='ptype' value='multiplication'>Multiplication</label>
@@ -225,7 +225,7 @@ async def index():
             term2 <input type='text' id='division_term2'>
             <span class="default-hint" id="division_hint"></span>
             <button type="button" class="reset-btn" id="division_reset">Reset</button>
-            <span class="desc">term1 = divisor, term2 = quotient</span>
+            <span class="desc">dividend ÷ term1 (divisor) = term2 (quotient)</span>
             <span class="example" id="division_example"></span>
           </div>
           <div class='row' data-type='missingfactor'>
@@ -243,7 +243,7 @@ async def index():
             term2 <input type='text' id='fractioncompare_term2'>
             <span class="default-hint" id="fractioncompare_hint"></span>
             <button type="button" class="reset-btn" id="fractioncompare_reset">Reset</button>
-            <span class="desc">denominators term1 vs term2</span>
+            <span class="desc">compare 1/term1 and 1/term2</span>
             <span class="example" id="fractioncompare_example"></span>
           </div>
         </fieldset>

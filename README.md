@@ -29,8 +29,10 @@ A modern, web-based Python app for generating customizable math worksheet PDFs. 
 - Select one or more problem types.
 - Optionally adjust the term ranges (defaults are shown and can be reset).
 - Ranges use the `min..max` format (e.g. `3..12`).
-  Term1 is the first number for the chosen type and term2 is the second
-  (for division that means divisor and quotient).
+  Term1 is the first number and term2 is the second.
+  For division term1 sets the divisor and term2 the quotient (the dividend
+  is their product). Fraction comparison uses them as the denominators of
+  the two fractions.
 - Examples with default limits:
   - Multiplication: `3 × 19`
   - Addition: `50 + 99`
