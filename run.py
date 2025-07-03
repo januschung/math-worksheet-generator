@@ -10,6 +10,7 @@ from fpdf import FPDF
 from fpdf.enums import XPos, YPos
 from functools import reduce
 from typing import List, Tuple
+from math import sqrt
 
 QuestionInfo = Tuple[int, str, int, int]
 
@@ -58,7 +59,12 @@ class MathWorksheetGenerator:
         elif current_type == 'x':
             answer = num_1 * num_2
         elif current_type == '/':
-            num_1, num_2, answer = self.division_helper(num_1)
+            max_nums = int(sqrt(self.max_number))
+            num_1 = random.randint(0, max_nums)
+            num_2 = random.randint(0, max_nums)
+            product = num_1 * num_2
+            answer = num_1
+            num_1 = product
 
         else:
             raise RuntimeError(f'Question main_type {current_type} not supported')
