@@ -16,10 +16,11 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, max_number: int, question_count: int):
+    def __init__(self, type_: str, max_number: int, question_count: int, title: str):
         self.main_type = type_
         self.max_number = max_number
         self.question_count = question_count
+        self.title = title
         self.pdf = FPDF()
 
         self.small_font_size = 10
@@ -231,11 +232,46 @@ class MathWorksheetGenerator:
             if i >= 9 and (i + 1) % 10 == 0:
                 self.pdf.ln()
 
+    def make_front_page(self):
+        """Create a front page with name/date/score fields"""
+        self.pdf.add_page(orientation='L') 
 
-def main(type_, size, question_count, filename):
+        # Title
+        self.pdf.set_font(self.font_1, 'B', size=self.large_font_size)
+        self.pdf.cell(
+            0, 40, txt=self.title,
+            align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT
+        )
+        self.pdf.ln(80)
+
+        # Name / Date / Score fields
+        self.pdf.set_font(self.font_1, size=self.middle_font_size)
+        cell_width_label = 40
+        cell_width_line = 100
+        cell_height = 15
+        x_start = (self.pdf.w - (cell_width_label + cell_width_line)) / 2 
+
+        # Name
+        self.pdf.set_x(x_start)
+        self.pdf.cell(cell_width_label, cell_height, txt='Name:', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        self.pdf.cell(cell_width_line, cell_height, txt='_____________________________', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        # Date
+        self.pdf.set_x(x_start)
+        self.pdf.cell(cell_width_label, cell_height, txt='Date:', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        self.pdf.cell(cell_width_line, cell_height, txt='_____________________________', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+        # Score
+        self.pdf.set_x(x_start)
+        self.pdf.cell(cell_width_label, cell_height, txt='Score:', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        self.pdf.cell(cell_width_line, cell_height, txt=f'__________________________/{self.question_count}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.pdf.ln(30)
+
+def main(type_, size, question_count, filename, title):
     """main function"""
-    new_pdf = MathWorksheetGenerator(type_, size, question_count)
+    new_pdf = MathWorksheetGenerator(type_, size, question_count, title)
     seed_question = new_pdf.get_list_of_questions(question_count)
+    new_pdf.make_front_page()
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output(filename)
@@ -273,6 +309,11 @@ if __name__ == "__main__":
     parser.add_argument('--output', metavar='filename.pdf', default='worksheet.pdf',
                         help='Output file to the given filename '
                              '(default: worksheet.pdf)')
+    parser.add_argument(
+        '--title',
+        default='Math Practice Worksheet',
+        help='Title on the front page (default: Math Practice Worksheet)',
+    )
     args = parser.parse_args()
 
     # how many places, 1:0-9, 2:0-99, 3:0-999
@@ -283,4 +324,4 @@ if __name__ == "__main__":
     else:
         size_ = 99
 
-    main(args.type, size_, args.question_count, args.output)
+    main(args.type, size_, args.question_count, args.output, args.title)
