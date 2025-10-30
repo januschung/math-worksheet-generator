@@ -28,6 +28,19 @@ class TestStringMethods(unittest.TestCase):
         question = g.generate_question()
         self.assertEqual(question[0] / question[2], question[3])
 
+    def test_generate_question_mix(self):
+        g = Mg(type_='mix', max_number=9, question_count=10)
+        question = g.generate_question()
+        self.assertIn(question[1], ['+', '-', 'x', '/'])
+        if question[1] == '+':
+            self.assertEqual(question[0] + question[2], question[3])
+        elif question[1] == '-':
+            self.assertEqual(question[0] - question[2], question[3])
+        elif question[1] == 'x':
+            self.assertEqual(question[0] * question[2], question[3])
+        elif question[1] == '/':
+            self.assertEqual(question[0] / question[2], question[3])
+
     def test_generate_question_unsupport_type_(self):
         g = Mg(type_='p', max_number=9, question_count=10)
         with self.assertRaisesRegex(RuntimeError, expected_regex=r"Question main_type p not supported"):
