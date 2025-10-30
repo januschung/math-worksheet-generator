@@ -16,11 +16,10 @@ QuestionInfo = Tuple[int, str, int, int]
 
 class MathWorksheetGenerator:
     """class for generating math worksheet of specified size and main_type"""
-    def __init__(self, type_: str, max_number: int, question_count: int, title: str):
+    def __init__(self, type_: str, max_number: int, question_count: int):
         self.main_type = type_
         self.max_number = max_number
         self.question_count = question_count
-        self.title = title
         self.pdf = FPDF()
 
         self.small_font_size = 10
@@ -232,14 +231,14 @@ class MathWorksheetGenerator:
             if i >= 9 and (i + 1) % 10 == 0:
                 self.pdf.ln()
 
-    def make_front_page(self):
+    def make_front_page(self, title):
         """Create a front page with name/date/score fields"""
         self.pdf.add_page(orientation='L') 
 
         # Title
         self.pdf.set_font(self.font_1, 'B', size=self.large_font_size)
         self.pdf.cell(
-            0, 40, txt=self.title,
+            0, 40, txt=title,
             align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT
         )
         self.pdf.ln(80)
@@ -269,9 +268,9 @@ class MathWorksheetGenerator:
 
 def main(type_, size, question_count, filename, title):
     """main function"""
-    new_pdf = MathWorksheetGenerator(type_, size, question_count, title)
+    new_pdf = MathWorksheetGenerator(type_, size, question_count)
     seed_question = new_pdf.get_list_of_questions(question_count)
-    new_pdf.make_front_page()
+    new_pdf.make_front_page(title)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output(filename)
