@@ -311,6 +311,7 @@ if __name__ == "__main__":
                              '(default: worksheet.pdf)')
     parser.add_argument(
         '--title',
+        nargs='?',
         default=None,
         help='Add a front page with the specified Title, or "Math Practice Worksheet" if not specified)',
         const='Math Practice Worksheet'
