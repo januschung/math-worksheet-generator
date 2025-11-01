@@ -59,7 +59,7 @@ For custom output filename (default is worksheet.pdf):
 ```
 python3 run.py --output custom-name.pdf
 ```
-For adding a front page with title, name, date, and score fields:
+For adding a front page with title, name, date, and score fields:  
 Use default title 'Math Practice Worksheet'
 ```
 python3 run.py --title 
