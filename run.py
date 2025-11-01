@@ -270,7 +270,8 @@ def main(type_, size, question_count, filename, title):
     """main function"""
     new_pdf = MathWorksheetGenerator(type_, size, question_count)
     seed_question = new_pdf.get_list_of_questions(question_count)
-    new_pdf.make_front_page(title)
+    if title:
+        new_pdf.make_front_page(title)
     new_pdf.make_question_page(seed_question)
     new_pdf.make_answer_page(seed_question)
     new_pdf.pdf.output(filename)
@@ -310,8 +311,9 @@ if __name__ == "__main__":
                              '(default: worksheet.pdf)')
     parser.add_argument(
         '--title',
-        default='Math Practice Worksheet',
-        help='Title on the front page (default: Math Practice Worksheet)',
+        default=None,
+        help='Add a front page with the specified Title, or "Math Practice Worksheet" if not specified)',
+        const='Math Practice Worksheet'
     )
     args = parser.parse_args()
 
