@@ -35,7 +35,7 @@ pip install -r requirements.txt
 ## How to Use
 1. Generate the worksheet in pdf format with the following command:
 ```
-python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf]
+python3 run.py --type [+|-|x|/|mix] --digits [1|2|3] [-q|--question_count] [int] --output [custom-name.pdf] --title [title-at-front-page]
 ```
 2. Print out the generated file `worksheet.pdf`
 
@@ -59,6 +59,15 @@ For custom output filename (default is worksheet.pdf):
 ```
 python3 run.py --output custom-name.pdf
 ```
+For adding a front page with title, name, date, and score fields:  
+Use default title 'Math Practice Worksheet'
+```
+python3 run.py --title 
+```
+or specify custom title
+```
+python3 run.py --title 'Math Quiz 1'
+```
 
 ## Sample
 [sample worksheet](sample-worksheet.pdf)
@@ -70,7 +79,7 @@ Everything is written in python in `run.py`. You can play with the font and grid
 I appreciate all suggestions or PRs which will help kids learn math better. Feel free to fork the project and create a pull request with your idea.
 
 ## TODO
-1. Add date/name/score section to the front page
+Nil
 
 ## Special Thanks
 My long time friend San for the inspiration of this project and lovely sons Tim and Hin. Thanks [thedanimal](https://github.com/thedanimal) for reviewing this README and adding new features.
