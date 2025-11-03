@@ -1,8 +1,9 @@
 import math
 import unittest
+from unittest.mock import patch
+import random
 
 from run import MathWorksheetGenerator as Mg
-
 
 class TestStringMethods(unittest.TestCase):
 
@@ -37,6 +38,15 @@ class TestStringMethods(unittest.TestCase):
         g = Mg(type_='x', max_number=9, question_count=10)
         question_list = g.get_list_of_questions(g.question_count)
         self.assertEqual(len(question_list), g.question_count)
+
+    def test_get_list_of_questions_calls_random_choice_for_mix(self):
+        g = Mg(type_='mix', max_number=9, question_count=10)
+
+        with patch('random.choice', wraps=random.choice) as mock_choice:
+            g.get_list_of_questions(g.question_count)
+        
+        # random.choice should be called at least question_count times, or more when there are duplicates
+        self.assertGreaterEqual(mock_choice.call_count, g.question_count)
 
     def test_make_question_page_page_count(self):
         g = Mg(type_='x', max_number=9, question_count=2)
